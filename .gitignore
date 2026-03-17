@@ -1,0 +1,23 @@
+# Macos meta files
+*.DS_Store
+
+# Development meta files
+*.python-version
+*.swo
+*.swp
+*.vim/
+tags
+Session.vim
+
+# Byte-compiled
+__pycache__/
+*.class
+*.egg-info
+
+# Pytest
+.coverage
+.pytest*
+htmlcov
+
+# Neovim-compiled
+*/lazy-lock.json
