@@ -15,7 +15,16 @@ return {
         enabled = true,
         timeout = 3000,
       },
-      picker = { enabled = true },
+      picker = {
+        enabled = true,
+      win = {
+        input = {
+          keys = {
+            -- Focus the preview window with <Tab>
+            ["<c-y>"] = { "focus_preview", mode = { "i", "n" } },
+          },
+        },
+      },      },
       quickfile = { enabled = true },
       scope = { enabled = true },
       scroll = { enabled = true },

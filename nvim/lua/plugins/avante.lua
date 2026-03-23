@@ -1,6 +1,6 @@
 return {
-
   {
+    enabled = false,
     "yetone/avante.nvim",
     -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
     -- ⚠️ must add this setting! ! !
@@ -14,7 +14,7 @@ return {
       -- add any opts here
       -- this file can contain specific instructions for your project
       instructions_file = "avante.md",
-      input = { provider = 'snacks'},
+      input = { provider = "snacks" },
       mode = "agentic", -- set "agentic" or "legacy"
       provider = "claude",
       auto_suggestions_provider = "moonshot",
