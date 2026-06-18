@@ -214,12 +214,6 @@ alias apts='apt-cache search'
 # Apt policy
 alias aptp='apt-cache policy'
 
-# Trash settings
-alias rm='trash-put -v'
-alias tl='trash-list'
-alias ts='trash-restore'
-alias te='trash-empty'
-
 # Docker settings
 # Docker show process status
 alias dkp='docker ps -a'

@@ -7,6 +7,12 @@
 # alias ll="eza -lhg"
 # alias la="eza -alhg"
 
+# Trash settings
+# alias rm='trash-put -v'
+# alias tl='trash-list'
+# alias ts='trash-restore'
+# alias te='trash-empty'
+
 # SSH Agent settings
 # if [ -z "$SSH_AUTH_SOCK" ]; then
 #   eval "$(ssh-agent -s)"
