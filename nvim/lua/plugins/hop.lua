@@ -1,5 +1,6 @@
 return {
   {
+    enabled = false,
     "phaazon/hop.nvim",
     branch = "v2",
     config = function()
