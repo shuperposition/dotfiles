@@ -2,26 +2,17 @@
 # Specific Environment Settings #
 #################################
 
-# Eza settings
-# alias ls="eza"
-# alias ll="eza -lhg"
-# alias la="eza -alhg"
-
 # Trash settings
 # alias rm='trash-put -v'
 # alias tl='trash-list'
 # alias ts='trash-restore'
 # alias te='trash-empty'
 
-# SSH Agent settings
-# if [ -z "$SSH_AUTH_SOCK" ]; then
-#   eval "$(ssh-agent -s)"
-# fi
-
 # SSHFS listing
 # alias mls="ps aux | grep -i sftp | grep -v grep"
 
 # Conda settings
+# export PATH="/opt/homebrew/anaconda3/bin:$PATH"
 # alias sconda='source ~/anaconda3/bin/activate'
 # alias sconda='source ~/miniconda3/bin/activate'
 

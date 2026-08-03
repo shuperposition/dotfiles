@@ -228,6 +228,24 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
     function npx()  { _nvm_load; npx "$@"; }
 fi
 
+# Ssh-agent settings
+# Reuse a single agent across shells via a cached env file (no orphan agents).
+# macOS presets SSH_AUTH_SOCK via launchd, so this is a no-op there; it only
+# starts an agent on Linux/headless.
+function _ssh_agent_init() {
+    [[ -n $SSH_AUTH_SOCK ]] && return 0
+    local ssh_env="$HOME/.ssh/agent.env"
+    [[ -r $ssh_env ]] && source "$ssh_env" > /dev/null
+    ssh-add -l &> /dev/null                       # exit 2 == no agent reachable
+    if [[ $? -eq 2 ]]; then
+        mkdir -p "${ssh_env:h}"
+        (umask 077; ssh-agent -s > "$ssh_env")
+        source "$ssh_env" > /dev/null
+    fi
+}
+_ssh_agent_init
+unset -f _ssh_agent_init
+
 # Pretty print all environment variables
 alias pe='env -0 | sort -z | tr "\0" "\n"'
 # Pretty print path environment variable
