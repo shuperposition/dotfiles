@@ -21,3 +21,5 @@ htmlcov
 
 # Neovim-compiled
 */lazy-lock.json
+
+**/.claude/settings.local.json
