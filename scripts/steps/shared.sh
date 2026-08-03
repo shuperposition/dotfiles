@@ -9,10 +9,39 @@
 NODE_VERSION="v20.19.6"
 NVM_VERSION="v0.40.3"
 
+# nvim-treesitter's master branch does not support Neovim 0.12: its query
+# directives index match[capture_id] as a single node, but 0.12 removed the
+# `all` option and always passes a TSNode[] list, so highlighting a markdown
+# fenced block or a bash heredoc throws "attempt to call method 'range'".
+# Bumping this past 0.11.x requires migrating nvim/lua/plugins/treesitter.lua
+# to the nvim-treesitter `main` branch first.
+NEOVIM_VERSION="v0.11.7"
+
 # Link the editor configuration. Shared by every neovim install path.
 link_editor_config() {
     link "$DOTFILES/nvim" "$HOME/.config/nvim"
     link "$DOTFILES/stylua" "$HOME/.config/stylua"
+}
+
+# Install the pinned Neovim release tarball under ~/.local/share and link the
+# binary into ~/.local/bin. Upstream names the asset nvim-<os>-<arch>.tar.gz on
+# both platforms, and arch_slug() already emits the arch spellings it uses.
+# $1 = os slug ("linux" or "macos")
+install_neovim_tarball() {
+    release="nvim-$1-$(arch_slug)"
+    need_dir "$HOME/.local/bin"
+    need_dir "$HOME/.local/share"
+    tmp=$(mktempdir)
+    fetch "https://github.com/neovim/neovim/releases/download/${NEOVIM_VERSION}/${release}.tar.gz" \
+        "$tmp/${release}.tar.gz"
+    # Gatekeeper quarantines downloads; clear it before extracting.
+    if is_macos; then
+        run xattr -c "$tmp/${release}.tar.gz"
+    fi
+    run rm -rf "$HOME/.local/share/${release}"
+    run tar -C "$HOME/.local/share/" -xzf "$tmp/${release}.tar.gz"
+    link "$HOME/.local/share/${release}/bin/nvim" "$HOME/.local/bin/nvim"
+    link_editor_config
 }
 
 step_oh_my_zsh() {

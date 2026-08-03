@@ -74,19 +74,8 @@ step_lazygit() {
 
 step_neovim() {
     # One step for both architectures, chosen from uname -m.
-    case "$(arch_slug)" in
-        x86_64) release="nvim-linux-x86_64" ;;
-        arm64) release="nvim-linux-arm64" ;;
-    esac
-    need_dir "$HOME/.local/bin"
-    need_dir "$HOME/.local/share"
-    tmp=$(mktempdir)
-    fetch "https://github.com/neovim/neovim/releases/download/stable/${release}.tar.gz" \
-        "$tmp/${release}.tar.gz"
-    run rm -rf "$HOME/.local/share/${release}"
-    run tar -C "$HOME/.local/share/" -xzf "$tmp/${release}.tar.gz"
-    link "$HOME/.local/share/${release}/bin/nvim" "$HOME/.local/bin/nvim"
-    link_editor_config
+    # Pinned to NEOVIM_VERSION; see scripts/steps/shared.sh for why.
+    install_neovim_tarball linux
 }
 
 # --- conda ------------------------------------------------------------------

@@ -1,6 +1,11 @@
 return {
   {
     "nvim-treesitter/nvim-treesitter",
+    -- master is the last branch supporting Neovim <= 0.11; it breaks on 0.12,
+    -- which is why the editor is pinned (see NEOVIM_VERSION in
+    -- scripts/steps/shared.sh). Moving to `main` means dropping
+    -- nvim-treesitter.configs, ensure_installed, auto_install, highlight and
+    -- indent entirely, and needs tree-sitter-cli >= 0.26.1.
     branch = "master",
     lazy = false,
     build = ":TSUpdate",

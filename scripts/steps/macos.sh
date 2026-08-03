@@ -41,8 +41,12 @@ step_iterm2_colors() {
 }
 
 step_neovim() {
-    run brew install neovim ripgrep fd lazygit
-    link_editor_config
+    # Homebrew has no versioned neovim formula, so nvim comes from the pinned
+    # upstream tarball (see NEOVIM_VERSION in shared.sh); the companion tools
+    # still come from brew. If a brew-installed nvim shadows ~/.local/bin on
+    # PATH, `brew uninstall neovim` once.
+    run brew install ripgrep fd lazygit
+    install_neovim_tarball macos
 }
 
 step_anaconda() {
