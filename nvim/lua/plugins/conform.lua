@@ -2,10 +2,21 @@ return {
   {
     "stevearc/conform.nvim",
     event = { "BufWritePre" },
-    cmd = { "ConformInfo" },
+    -- FormatDisable/FormatEnable are defined in config() below, so they must
+    -- be declared here too, otherwise lazy.nvim has not loaded the plugin yet
+    -- and calling them reports "Not an editor command".
+    cmd = { "ConformInfo", "FormatDisable", "FormatEnable" },
     opts = {
       notify_on_error = false,
-      format_on_save = false,
+      -- Must be a function, not a plain `false`: the :FormatDisable and
+      -- :FormatEnable commands below work by setting these variables, and a
+      -- static value would mean nothing ever reads them.
+      format_on_save = function(bufnr)
+        if vim.b[bufnr].disable_autoformat or vim.g.disable_autoformat then
+          return
+        end
+        return { timeout_ms = 500, lsp_format = "fallback" }
+      end,
       formatters_by_ft = {
         -- Shell formatter
         sh = { "shfmt" },
@@ -61,6 +72,11 @@ return {
 
     -- Create custom toggle commands
     config = function(_, opts)
+      -- Start with format-on-save off, matching the previous behaviour.
+      -- Turn it on for a session with :FormatEnable or <leader>fT.
+      if vim.g.disable_autoformat == nil then
+        vim.g.disable_autoformat = true
+      end
       require("conform").setup(opts)
       vim.api.nvim_create_user_command("FormatDisable", function(args)
         if args.bang then

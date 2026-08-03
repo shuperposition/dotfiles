@@ -40,8 +40,13 @@ vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "LSP Definition" })
 -- vim.keymap.set("n", "<space>aj", "<cmd>lua vim.diagnostic.goto_next()<CR>", { desc = "[L]SP Go to Next" })
 -- vim.keymap.set("n", "<space>ak", "<cmd>lua vim.diagnostic.goto_prev()<CR>", { desc = "[L]SP Go to Previous" })
 -- Diagnostic
-vim.keymap.set("n", "gJ", vim.diagnostic.goto_next, { desc = "Diagnostic next" })
-vim.keymap.set("n", "gK", vim.diagnostic.goto_prev, { desc = "Diagnostic previous" })
+-- goto_next/goto_prev are deprecated since nvim 0.11 and slated for removal
+vim.keymap.set("n", "gJ", function()
+  vim.diagnostic.jump({ count = 1, float = true })
+end, { desc = "Diagnostic next" })
+vim.keymap.set("n", "gK", function()
+  vim.diagnostic.jump({ count = -1, float = true })
+end, { desc = "Diagnostic previous" })
 -- Move lines
 vim.keymap.set("n", "<S-j>", "<cmd>:m +1<CR>", { desc = "Move line down" })
 vim.keymap.set("n", "<S-k>", "<cmd>:m -2<CR>", { desc = "Move line up" })

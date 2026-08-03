@@ -26,8 +26,20 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Check if Zsh exists and is executable
-if [ -x "$(command -v zsh)" ]; then
-    # Execute Zsh as a login shell
-    exec "$(command -v zsh)" -l
-fi
+# Hand off to zsh for interactive logins.
+#
+# Reference copy: the installer deliberately does not link this file, because
+# ~/.profile usually accumulates machine-specific lines (cargo, toolchain
+# installers) that should not be overwritten. Copy the pieces you want.
+#
+# The interactive guard matters. Without it this runs for non-interactive
+# logins too, and any script that sources ~/.profile is replaced by a login
+# shell mid-run -- which is exactly how the old install_nvm step silently
+# aborted before it ever installed node.
+case $- in
+    *i*)
+        if [ -z "${ZSH_VERSION:-}" ] && [ -x "$(command -v zsh)" ]; then
+            exec "$(command -v zsh)" -l
+        fi
+        ;;
+esac

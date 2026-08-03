@@ -19,7 +19,9 @@ __pycache__/
 .pytest*
 htmlcov
 
-# Neovim-compiled
-*/lazy-lock.json
+# Machine-local shell overrides.
+# Seeded once from zsh/zshlc.template and edited per machine, so it must never
+# be committed and must never be overwritten by the installer.
+.zshlc
 
 **/.claude/settings.local.json

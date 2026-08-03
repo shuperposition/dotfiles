@@ -1,6 +1,8 @@
 # Tmux settings
 # Attach to an existing session or start new session otherwise
-if [[ ! -n $TMUX ]]; then
+# Guarded on an interactive shell with tmux available, so that a missing or
+# broken tmux cannot lock us out of a login shell (~/.profile execs zsh).
+if [[ -o interactive ]] && [[ -z $TMUX ]] && command -v tmux > /dev/null 2>&1; then
     tmux -2 attach || tmux -2 new-session
 fi
 
@@ -94,24 +96,28 @@ plugins=(
   conda-zsh-completion
 )
 
-source $ZSH/oh-my-zsh.sh
-
 # Oh-my-zsh completions settings
+# FPATH must be extended before oh-my-zsh.sh, which runs compinit itself.
 if type brew &>/dev/null; then
   FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
 fi
-autoload -Uz compinit && compinit
+
+# Runs compinit internally, so do not call it again below: a second compinit
+# re-dumps the completion cache and costs ~230ms per shell.
+source $ZSH/oh-my-zsh.sh
 
 ###############################
 # Common Environment Settings #
 ###############################
 
 # Terminal color settings
-export TERM=xterm-256color
+# TERM is deliberately not set here: the terminal emulator and tmux each
+# advertise their own, and overriding it breaks truecolor detection.
 
 # Standard encoding settings
+# LC_ALL is deliberately not set: it overrides every other LC_* variable,
+# which would silently discard the LC_CTYPE setting below.
 export LANG=en_US.UTF-8
-export LC_ALL=$LANG
 
 # Japanese encoding settings
 export LANG_JP=C.UTF-8
@@ -120,10 +126,18 @@ export LC_CTYPE=$LANG_JP
 # Alawyas list directory after cd
 function chpwd() {ls -a}
 
+# Prepend a directory to PATH, if it exists and is not already present.
+# The membership test keeps PATH stable when this file is re-sourced.
+function path_prepend() {
+    [[ -d $1 ]] || return 0
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) export PATH="$1:$PATH" ;;
+    esac
+}
+
 # Set PATH to includes user's local bin if it exists
-if [ -d "$HOME/.local/bin" ] ; then
-    export PATH="$HOME/.local/bin:$PATH"
-fi
+path_prepend "$HOME/.local/bin"
 
 # Terminal settings
 # This is for Gogh terminal color scheme specifically for Gnome terminal
@@ -134,13 +148,10 @@ case `uname` in
 esac
 
 # Bat settings
-case `uname` in
-    Linux)
-        if [ command -v "batcat" > /dev/null 2>&1 ]; then
-          alias bat='batcat'
-        fi
-    ;;
-esac
+# Debian and Ubuntu ship bat as batcat, due to a name clash with another package
+if ! command -v bat > /dev/null 2>&1 && command -v batcat > /dev/null 2>&1; then
+    alias bat='batcat'
+fi
 export BAT_THEME="gruvbox-dark"
 
 # Fzf settings
@@ -149,9 +160,26 @@ export BAT_THEME="gruvbox-dark"
 export FZF_DEFAULT_OPTS='--height 40% --reverse --border'
 export FZF_DEFAULT_COMMAND='find .'
 # Fzf advance settings
-show_file_or_dir_preview="if [ -d {} ]; then eza --tree --color=always {} | head -200; else bat -n --color=always --line-range :500 {}; fi"
+# Resolve the preview tools once, so that a machine missing any of them still
+# gets a working preview instead of a silent "command not found"
+if command -v eza > /dev/null 2>&1; then
+    fzf_tree='eza --tree --color=always'
+elif command -v exa > /dev/null 2>&1; then
+    fzf_tree='exa --tree --color=always'
+else
+    fzf_tree='ls -R'
+fi
+if command -v bat > /dev/null 2>&1; then
+    fzf_pager='bat -n --color=always --line-range :500'
+elif command -v batcat > /dev/null 2>&1; then
+    fzf_pager='batcat -n --color=always --line-range :500'
+else
+    fzf_pager='head -n 500'
+fi
+show_file_or_dir_preview="if [ -d {} ]; then $fzf_tree {} | head -200; else $fzf_pager {}; fi"
 export FZF_CTRL_T_OPTS="--preview '$show_file_or_dir_preview'"
-export FZF_ALT_C_OPTS="--preview 'eza --tree --color=always {} | head -200'"
+export FZF_ALT_C_OPTS="--preview '$fzf_tree {} | head -200'"
+unset fzf_tree fzf_pager
 
 # Default editor settings
 case `uname` in
@@ -186,8 +214,19 @@ case `uname` in
         fi
     ;;
 esac
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+# Sourcing nvm.sh eagerly costs ~360ms, most of it nvm's auto-use of the
+# nearest .nvmrc. Install stubs that load nvm for real on first use instead.
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    function _nvm_load() {
+        unset -f nvm node npm npx _nvm_load > /dev/null 2>&1
+        \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    }
+    function nvm()  { _nvm_load; nvm "$@"; }
+    function node() { _nvm_load; node "$@"; }
+    function npm()  { _nvm_load; npm "$@"; }
+    function npx()  { _nvm_load; npx "$@"; }
+fi
 
 # Pretty print all environment variables
 alias pe='env -0 | sort -z | tr "\0" "\n"'
@@ -273,30 +312,41 @@ case `uname` in
         alias ls="eza"
         alias ll="eza -lhg"
         alias la="eza -alhg"
-        export PATH="/opt/homebrew/opt/trash-cli/bin:$PATH"
-        # >>> conda initialize >>>
-        # !! Contents within this block are managed by 'conda init' !!
-        __conda_setup="$('/opt/homebrew/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-        if [ $? -eq 0 ]; then
-            eval "$__conda_setup"
-        else
-            if [ -f "/opt/homebrew/anaconda3/etc/profile.d/conda.sh" ]; then
-                . "/opt/homebrew/anaconda3/etc/profile.d/conda.sh"
-            else
-                export PATH="/opt/homebrew/anaconda3/bin:$PATH"
-            fi
-        fi
-        unset __conda_setup
-        # <<< conda initialize <<<
-    ;;
-    Linux)
-        if [[ -f ~/anaconda3/bin/activate ]]; then
-            source ~/anaconda3/bin/activate
-        elif [[ -f ~/miniconda3/bin/activate ]]; then
-            source ~/miniconda3/bin/activate
-        fi
+        path_prepend "/opt/homebrew/opt/trash-cli/bin"
     ;;
 esac
+
+# Conda settings
+# Activating the base environment shells out to Python and costs ~220ms per
+# shell. Sourcing conda.sh (which defines the `conda` function) costs ~1ms, so
+# do that eagerly and replay a cached copy of the activation instead. The cache
+# is rebuilt whenever the conda installation changes; delete it to force a
+# refresh: rm ${XDG_CACHE_HOME:-~/.cache}/conda-base-activate.zsh
+function _conda_init() {
+    local root
+    for root in /opt/homebrew/anaconda3 ~/anaconda3 ~/miniconda3; do
+        [[ -f $root/etc/profile.d/conda.sh ]] && break
+        root=""
+    done
+    [[ -n $root ]] || return 0
+
+    source "$root/etc/profile.d/conda.sh"
+
+    local cache="${XDG_CACHE_HOME:-$HOME/.cache}/conda-base-activate.zsh"
+    if [[ ! -s $cache || $root/conda-meta/history -nt $cache ]]; then
+        mkdir -p "${cache:h}"
+        # Drop the PS1 assignment (powerlevel10k renders the environment from
+        # CONDA_PROMPT_MODIFIER) and rewrite conda's absolute PATH snapshot
+        # into a prepend, so the cache composes with whatever PATH we have.
+        "$root/bin/conda" shell.zsh activate base 2> /dev/null \
+            | grep -v '^PS1=' \
+            | sed "s|^export PATH=.*|path_prepend '$root/condabin'; path_prepend '$root/bin'|" \
+            > "$cache"
+    fi
+    source "$cache"
+}
+_conda_init
+unset -f _conda_init
 
 # Local settings
 if [[ -f ~/.zshlc ]]; then
@@ -304,4 +354,4 @@ if [[ -f ~/.zshlc ]]; then
 fi
 
 # Powerlevel10k settings
-source ~/dotfiles/zsh/p10k.zsh
+[[ -f ~/dotfiles/zsh/p10k.zsh ]] && source ~/dotfiles/zsh/p10k.zsh
