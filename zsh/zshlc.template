@@ -2,6 +2,11 @@
 # Specific Environment Settings #
 #################################
 
+# Exa settings
+# alias ls="exa"
+# alias ll="exa -lhg"
+# alias la="exa -alhg"
+
 # Trash settings
 # alias rm='trash-put -v'
 # alias tl='trash-list'
