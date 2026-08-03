@@ -351,12 +351,20 @@ function _conda_init() {
     source "$root/etc/profile.d/conda.sh"
 
     local cache="${XDG_CACHE_HOME:-$HOME/.cache}/conda-base-activate.zsh"
-    if [[ ! -s $cache || $root/conda-meta/history -nt $cache ]]; then
+    # Rebuild when missing, stale, or malformed. A cache captured while base was
+    # already active is a *reactivation* diff that omits CONDA_PREFIX, leaving
+    # conda half-activated (CONDA_SHLVL=1, no CONDA_PREFIX) and crashing every
+    # later `conda activate/deactivate`.
+    if [[ ! -s $cache || $root/conda-meta/history -nt $cache ]] \
+        || ! grep -q '^export CONDA_PREFIX=' "$cache"; then
         mkdir -p "${cache:h}"
         # Drop the PS1 assignment (powerlevel10k renders the environment from
-        # CONDA_PROMPT_MODIFIER) and rewrite conda's absolute PATH snapshot
-        # into a prepend, so the cache composes with whatever PATH we have.
-        "$root/bin/conda" shell.zsh activate base 2> /dev/null \
+        # CONDA_PROMPT_MODIFIER) and rewrite conda's absolute PATH snapshot into a
+        # prepend, so the cache composes with whatever PATH we have. Force a fresh
+        # level-0 activation (CONDA_SHLVL=0, prefix vars unset) so conda emits the
+        # full activation — including CONDA_PREFIX — instead of a reactivation diff.
+        env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER CONDA_SHLVL=0 \
+            "$root/bin/conda" shell.zsh activate base 2> /dev/null \
             | grep -v '^PS1=' \
             | sed "s|^export PATH=.*|path_prepend '$root/condabin'; path_prepend '$root/bin'|" \
             > "$cache"
