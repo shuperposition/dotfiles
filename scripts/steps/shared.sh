@@ -33,7 +33,18 @@ step_oh_my_zsh() {
     clone_or_pull https://github.com/esc/conda-zsh-completion.git "$custom/plugins/conda-zsh-completion"
     clone_or_pull https://github.com/romkatv/powerlevel10k.git "$custom/themes/powerlevel10k" --depth=1
 
+    # Some hosts force a group-writable umask globally (the GPU cluster sets
+    # `umask 0007` in /etc/zsh/zshrc), so the clones above land 0770. compinit
+    # then refuses to load completions from them and oh-my-zsh warns about it on
+    # every shell start. These are our own directories, so fix the modes rather
+    # than teach the shell to ignore them.
+    run find "$omz" "$custom" -type d -exec chmod g-w,o-w {} +
+
     link "$DOTFILES/zsh/zshrc" "$HOME/.zshrc"
+
+    # Read before /etc/zsh/zshrc, which is the only window in which that file's
+    # bare compinit can be headed off. See the comments in zsh/zshenv.
+    link "$DOTFILES/zsh/zshenv" "$HOME/.zshenv"
 
     # Machine-local overrides. Seeded once from the template and never
     # overwritten afterwards: this file is where per-machine settings live.

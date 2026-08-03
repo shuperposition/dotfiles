@@ -51,6 +51,7 @@ A step is just a `step_<name>` bash function. To add one, drop it in the right
 | Repo path | Destination |
 | --- | --- |
 | `zsh/zshrc` | `~/.zshrc` |
+| `zsh/zshenv` | `~/.zshenv` |
 | `zsh/zshlc.template` | `~/.zshlc` *(copied once, never overwritten)* |
 | `nvim/` | `~/.config/nvim` |
 | `stylua/` | `~/.config/stylua` |
@@ -79,6 +80,12 @@ are worth preserving if you edit it:
 
 - **compinit runs once.** `oh-my-zsh.sh` already calls it; calling it again
   costs ~230ms. Anything that extends `FPATH` must come *before* that source.
+  `zsh/zshenv` exists for the same reason: Ubuntu's `/etc/zsh/zshrc` runs a
+  third, bare `compinit`, and `~/.zshenv` is the only file read early enough to
+  set the `skip_global_compinit=1` that turns it off. On a host with a
+  group-writable `FPATH` entry — an lmod cluster, say — that bare compinit stops
+  and asks about it, which hangs the login on a tty and kills completions
+  without one. Do not delete it because it looks like one stray line.
 - **nvm is lazy.** `nvm`, `node`, `npm` and `npx` are stubs that load the real
   nvm on first use, instead of paying ~360ms in every shell.
 - **conda activation is cached.** `conda activate base` shells out to Python

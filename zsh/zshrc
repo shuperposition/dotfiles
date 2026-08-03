@@ -102,6 +102,15 @@ if type brew &>/dev/null; then
   FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
 fi
 
+# lmod exports FPATH with a group-writable ksh_funcs directory owned by another
+# uid, which we cannot chmod. compinit refuses to complete from it and oh-my-zsh
+# prints a banner about it on every start, so drop it. Nothing is lost: lmod
+# defines `module` and `ml` as real zsh functions, and ksh_funcs holds only the
+# ksh autoload stubs. Matching the exact path rather than $MODULESHOME/* keeps
+# this off environment-modules, which keeps its _module completion one directory
+# over in init/zsh-functions. No-op on machines without lmod.
+[[ -n $MODULESHOME ]] && fpath=(${fpath:#${MODULESHOME%/}/init/ksh_funcs})
+
 # Runs compinit internally, so do not call it again below: a second compinit
 # re-dumps the completion cache and costs ~230ms per shell.
 source $ZSH/oh-my-zsh.sh

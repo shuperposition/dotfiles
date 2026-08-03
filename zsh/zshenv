@@ -1,0 +1,17 @@
+# Read by every zsh, before every other startup file. Parameter assignments
+# only: no output, no forks, nothing machine-specific -- every `zsh -c` in every
+# script pays for whatever lands here.
+
+# Ubuntu's /etc/zsh/zshrc runs a bare `compinit` before ~/.zshrc gets a say, and
+# a bare compinit stops on "Ignore insecure directories [y/n]?" whenever an fpath
+# entry is group-writable. It reads the answer from the terminal: on a tty the
+# login blocks and swallows a keystroke, without one it aborts and the shell
+# comes up with no completions. On this cluster the trigger is permanent -- lmod
+# exports a group-writable directory owned by another uid into FPATH, and it is
+# not ours to chmod. oh-my-zsh runs its own `compinit -i` later, so the global
+# one is duplicated work everywhere else. Documented opt-out; see the comment
+# above that block in /etc/zsh/zshrc.
+#
+# Deliberately not exported: the test there is on the plain parameter, and this
+# file re-establishes it in every nested shell anyway.
+skip_global_compinit=1
