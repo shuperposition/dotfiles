@@ -16,7 +16,7 @@ return {
       -- Sort keymap list
       wk.setup({
         preset = "modern",
-        sort = {"group", "local", "desc"},
+        sort = { "group", "local", "desc" },
       })
       -- Add names to keymap groups
       wk.add({
@@ -26,7 +26,6 @@ return {
         { "<leader>f", group = "Format" },
         { "<leader>g", group = "Git" },
         { "<leader>/", group = "Search" },
-        { "<leader>a", group = "LSP" },
         -- Add descriptions to existing keymaps
         { "<leader>fa", desc = "[F]ormat [A]lign" },
         { "<leader>fA", desc = "[F]ormat [A]lign with preview" },

@@ -28,14 +28,14 @@ return {
           },
         },
       })
-      -- Keybiding
-      vim.api.nvim_set_keymap("n", "<leader>th", ":-tabmove<CR>", { noremap = true, desc = "Move tab to left" })
-      vim.api.nvim_set_keymap("n", "<leader>tl", ":+tabmove<CR>", { noremap = true, desc = "Move tab to right" })
-      vim.api.nvim_set_keymap(
+      -- Keybindings
+      vim.keymap.set("n", "<leader>th", ":-tabmove<CR>", { desc = "Move tab to left" })
+      vim.keymap.set("n", "<leader>tl", ":+tabmove<CR>", { desc = "Move tab to right" })
+      vim.keymap.set(
         "n",
         "<leader>tr",
         ":lua require('tabby').tab_rename(vim.fn.input('New tab name: '))<CR>",
-        { noremap = true, silent = true, desc = "Rename current tab" }
+        { silent = true, desc = "Rename current tab" }
       )
     end,
   },

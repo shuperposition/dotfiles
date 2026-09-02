@@ -17,14 +17,15 @@ return {
       },
       picker = {
         enabled = true,
-      win = {
-        input = {
-          keys = {
-            -- Focus the preview window with <Tab>
-            ["<c-y>"] = { "focus_preview", mode = { "i", "n" } },
+        win = {
+          input = {
+            keys = {
+              -- Focus the preview window with <Tab>
+              ["<c-y>"] = { "focus_preview", mode = { "i", "n" } },
+            },
           },
         },
-      },      },
+      },
       quickfile = { enabled = true },
       scope = { enabled = true },
       scroll = { enabled = true },
@@ -32,8 +33,20 @@ return {
       words = { enabled = true },
     },
     keys = {
-      { "<leader>cn", function() require("snacks").picker.notifications() end, desc = "[C]heck [N]otifications" },
-      { "<leader>cp", function() require("snacks").picker() end, desc = "[C]heck [P]icker" },
+      {
+        "<leader>cn",
+        function()
+          require("snacks").picker.notifications()
+        end,
+        desc = "[C]heck [N]otifications",
+      },
+      {
+        "<leader>cp",
+        function()
+          require("snacks").picker()
+        end,
+        desc = "[C]heck [P]icker",
+      },
     },
   },
 }

@@ -1,10 +1,12 @@
 return {
   {
-    'windwp/nvim-autopairs',
+    "windwp/nvim-autopairs",
     event = "InsertEnter",
     config = true,
     opts = {
-      enabled = function(bufnr) return true end, -- control if auto-pairs should be enabled when attaching to a buffer
+      enabled = function(bufnr)
+        return true
+      end, -- control if auto-pairs should be enabled when attaching to a buffer
       disable_filetype = { "TelescopePrompt", "spectre_panel", "snacks_picker_input" },
       disable_in_macro = true, -- disable when recording or executing a macro
       disable_in_visualblock = false, -- disable when insert after visual block mode

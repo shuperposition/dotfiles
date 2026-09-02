@@ -1,3 +1,9 @@
+-- Run at spec-eval time (before plugins load), matching the previous
+-- placement of these calls inside the lazy spec table.
+vim.keymap.set("n", "<leader>xt", "<cmd>TodoQuickFix<CR>", { desc = "[L]ist [T]odos Quickfix" })
+vim.keymap.set("n", "<leader>xT", "<cmd>TodoTrouble<CR>", { desc = "[L]ist [T]odos Trouble" })
+vim.keymap.set("n", "<leader>/t", "<cmd>TodoTelescope<CR>", { desc = "[S]earch [T]odos" })
+
 return {
   {
     -- INFO:
@@ -20,12 +26,9 @@ return {
         note = { "GruvboxBlueBold" },
         todo = { "GruvboxGreenBold" },
         test = { "GruvboxOrangeBold" },
-        warn = { "GruvBoxYellowBold" },
-        fix = { "GruvBoxRedBold" },
+        warn = { "GruvboxYellowBold" },
+        fix = { "GruvboxRedBold" },
       },
     },
-    vim.keymap.set("n", "<leader>xt", "<cmd>:TodoQuickFix<CR>", { desc = "[L]ist [T]odos Quickfix" }),
-    vim.keymap.set("n", "<leader>xT", "<cmd>:TodoTrouble<CR>", { desc = "[L]ist [T]odos Trouble" }),
-    vim.keymap.set("n", "<leader>/t", "<cmd>:TodoTelescope<CR>", { desc = "[S]earch [T]odos" }),
   },
 }

@@ -1,3 +1,15 @@
+-- Run at spec-eval time (before plugins load), matching the previous
+-- placement of these calls inside the lazy spec table.
+vim.keymap.set("n", "<leader>n", "<cmd>Neotree toggle<CR>", { desc = "Toggle Neo-tree" })
+-- Git highlight color (change type)
+vim.api.nvim_set_hl(0, "NeoTreeGitAdded", { fg = "#fe8019" })
+vim.api.nvim_set_hl(0, "NeoTreeGitModified", { fg = "#fe8019" })
+-- Git highlight color (status type)
+vim.api.nvim_set_hl(0, "NeoTreeGitUntracked", { fg = "#fb4934" })
+vim.api.nvim_set_hl(0, "NeoTreeGitUnstaged", { fg = "#fe8019" })
+vim.api.nvim_set_hl(0, "NeoTreeGitStaged", { fg = "#fe8019" })
+vim.api.nvim_set_hl(0, "NeoTreeGitConflict", { fg = "#fb4934" })
+
 return {
   {
     "nvim-neo-tree/neo-tree.nvim",
@@ -8,18 +20,6 @@ return {
       "nvim-tree/nvim-web-devicons",
     },
     lazy = false,
-
-    -- Keymaps settings
-    vim.keymap.set("n", "<Space>n", "<cmd>Neotree toggle<CR>"),
-    -- Git highlight color (change type)
-    vim.api.nvim_set_hl(0, "NeoTreeGitAdded", { fg = "#fe8019" }),
-    vim.api.nvim_set_hl(0, "NeoTreeGitModified", { fg = "#fe8019" }),
-    -- Git highlight color (status type)
-    vim.api.nvim_set_hl(0, "NeoTreeGitUntracked", { fg = "#fb4934" }),
-    vim.api.nvim_set_hl(0, "NeoTreeGitUnstaged", { fg = "#fe8019" }),
-    vim.api.nvim_set_hl(0, "NeoTreeGitStaged", { fg = "#fe8019" }),
-    vim.api.nvim_set_hl(0, "NeoTreeGitConflict", { fg = "#fb4934" }),
-
     config = function()
       require("neo-tree").setup({
         use_default_mappings = false,

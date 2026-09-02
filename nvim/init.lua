@@ -1,7 +1,9 @@
 -- Load configurations
+-- options must come first: it sets mapleader, which every <leader> mapping
+-- below resolves at definition time.
+require("config.options")
 require("config.autocmds")
 require("config.keymaps")
-require("config.options")
 require("config.lsp")
 
 -- Bootstrap lazy.nvim

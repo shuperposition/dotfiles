@@ -40,8 +40,8 @@ return {
     "nvim-mini/mini.align",
     opts = {
       mappings = {
-        start = "<space>fa",
-        start_with_preview = "<space>fA",
+        start = "<leader>fa",
+        start_with_preview = "<leader>fA",
       },
     },
   },

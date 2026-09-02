@@ -4,7 +4,6 @@ return {
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
       local tsj = require("treesj")
-      local langs = {}
       tsj.setup({
         ---@type boolean Use default keymaps (<space>m - toggle, <space>j - join, <space>s - split)
         use_default_keymaps = false,
@@ -25,8 +24,6 @@ return {
         dot_repeat = true,
         ---@type nil|function Callback for treesj error handler. func (err_text, level, ...other_text)
         on_error = nil,
-        ---@type table Presets for languages
-        -- langs = {}, -- See the default presets in lua/treesj/langs
       })
       vim.keymap.set("n", "<leader>z", require("treesj").toggle, { desc = "Toggle treesj" })
     end,
