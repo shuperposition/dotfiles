@@ -43,9 +43,14 @@ step_iterm2_colors() {
 step_neovim() {
     # Homebrew has no versioned neovim formula, so nvim comes from the pinned
     # upstream tarball (see NEOVIM_VERSION in shared.sh); the companion tools
-    # still come from brew. If a brew-installed nvim shadows ~/.local/bin on
-    # PATH, `brew uninstall neovim` once.
+    # still come from brew.
     run brew install ripgrep fd lazygit
+    # A brew-installed neovim sits in /opt/homebrew/bin and shadows
+    # ~/.local/bin on PATH, which silently defeats the pin. Remove it rather
+    # than leave a note asking someone to remember.
+    if brew list --formula neovim > /dev/null 2>&1; then
+        run brew uninstall neovim
+    fi
     install_neovim_tarball macos
 }
 

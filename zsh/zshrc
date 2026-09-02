@@ -191,38 +191,28 @@ export FZF_ALT_C_OPTS="--preview '$fzf_tree {} | head -200'"
 unset fzf_tree fzf_pager
 
 # Default editor settings
-case `uname` in
-    Darwin)
-        if [[ -f /opt/homebrew/bin/nvim ]]; then
-            export EDITOR=/opt/homebrew/bin/nvim
-        fi
-    ;;
-    Linux)
-        if [[ -f $HOME/.local/bin/nvim ]]; then
-            export EDITOR=$HOME/.local/bin/nvim
-        elif [[ -f /opt/nvim-linux-x86_64/bin/nvim ]]; then
-            export EDITOR='/opt/nvim-linux-x86_64/bin/nvim'
-        elif [[ -f /usr/bin/nvim ]]; then
-            export EDITOR=/usr/bin/nvim
-        else
-            export EDITOR=/usr/bin/vim
-        fi
-    ;;
-esac
+# ~/.local/bin/nvim comes first on both platforms: that is where the pinned
+# neovim tarball lands (NEOVIM_VERSION in scripts/steps/shared.sh). It has to
+# win, or $EDITOR silently opens a different nvim than the prompt does — a
+# brew-installed 0.12 defeats the pin exactly that way. The rest are fallbacks
+# for machines the installer has not touched, newest layout first.
+for _editor in "$HOME/.local/bin/nvim" /opt/homebrew/bin/nvim \
+               /opt/nvim-linux-x86_64/bin/nvim /usr/bin/nvim /usr/bin/vim; do
+    if [[ -x $_editor ]]; then
+        export EDITOR=$_editor
+        break
+    fi
+done
+unset _editor
 
 # Nvm settings
-case `uname` in
-    Darwin)
-        if [[ -d /opt/homebrew/opt/nvm ]]; then
-            export NVM_DIR="/opt/homebrew/opt/nvm"
-        fi
-    ;;
-    Linux)
-        if [[ -d ~/.nvm ]]; then
-            export NVM_DIR="$HOME/.nvm"
-        fi
-    ;;
-esac
+# ~/.nvm on both platforms, including macOS, where nvm itself comes from brew:
+# its nvm.sh is symlinked in here so that `brew upgrade nvm` cannot delete the
+# installed node versions along with the keg. See step_nvm in
+# scripts/steps/shared.sh.
+if [[ -d ~/.nvm ]]; then
+    export NVM_DIR="$HOME/.nvm"
+fi
 # Sourcing nvm.sh eagerly costs ~360ms, most of it nvm's auto-use of the
 # nearest .nvmrc. Install stubs that load nvm for real on first use instead.
 if [ -s "$NVM_DIR/nvm.sh" ]; then

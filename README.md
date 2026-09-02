@@ -27,7 +27,7 @@ scratch directory that is removed on exit.
 
 | Profile | For |
 | --- | --- |
-| `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools |
+| `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node |
 | `linux-server` | A server account: shell, tools and conda, no desktop packages |
 | `linux-desktop` | Desktop extras: docker, NVIDIA, language toolchains, apps |
 | `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace |
@@ -45,6 +45,36 @@ scripts/
 
 A step is just a `step_<name>` bash function. To add one, drop it in the right
 `steps/` file — `--list` picks it up automatically.
+
+### Pinned versions
+
+Everything fetched from upstream is pinned to a specific release, so two
+machines set up months apart land on the same tooling. The pins sit at the top
+of the step files:
+
+| Where | Pins |
+| --- | --- |
+| `scripts/steps/shared.sh` | `NEOVIM_VERSION`, `NODE_VERSION`, `NVM_VERSION` |
+| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `ANACONDA_VERSION`, `GO_VERSION`, `DRAWIO_VERSION` |
+
+Neovim is the one that matters most. `NEOVIM_VERSION` is held at 0.11.x on all
+three platforms because nvim-treesitter's `master` branch breaks on 0.12 — the
+comment above the variable has the details. macOS and Linux both install that
+exact upstream tarball to `~/.local/bin/nvim` rather than going through a
+package manager, since neither brew nor apt can be asked for a given version.
+For the same reason nothing else may install an `nvim`: a brew-installed one
+shadows `~/.local/bin` on `PATH` and quietly defeats the pin, so `step_neovim`
+removes it.
+
+Two deliberate exceptions:
+
+- **nvm on macOS** comes from `brew install nvm` and rolls forward, because
+  Homebrew has no versioned formula and pinning one would mean maintaining a
+  private tap. `NVM_VERSION` therefore governs Linux alone. `NODE_VERSION` —
+  the version that actually affects what you run — is pinned on both, and
+  `NVM_DIR` is `~/.nvm` on both so that `brew upgrade nvm` cannot delete the
+  installed node versions along with the keg.
+- **lazygit on Linux** resolves the latest release at install time.
 
 ## What gets linked where
 

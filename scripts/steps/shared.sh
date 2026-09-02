@@ -7,6 +7,10 @@
 
 # Pinned versions, collected here so they are easy to find and bump.
 NODE_VERSION="v20.19.6"
+# Linux only. macOS installs nvm from Homebrew, which has no versioned formula,
+# so nvm itself rolls forward there; pinning it would mean maintaining a private
+# tap. NODE_VERSION is the one that has to be reproducible, and step_nvm pins
+# that on both platforms.
 NVM_VERSION="v0.40.3"
 
 # nvim-treesitter's master branch does not support Neovim 0.12: its query
@@ -99,18 +103,28 @@ step_fzf() {
 }
 
 step_nvm() {
+    # The nvm data directory lives in $HOME on both platforms. Homebrew's own
+    # nvm.sh explains why: with NVM_DIR pointing inside the keg, `brew upgrade
+    # nvm` deletes every node version installed under it — and step_brew_update
+    # runs exactly that. Homebrew supplies the script, not the data.
+    NVM_DIR="$HOME/.nvm"
     if is_macos; then
         have brew || die "homebrew is required for the nvm step"
         run brew install nvm
-        NVM_DIR="/opt/homebrew/opt/nvm"
+        # The keg's top-level nvm.sh is a shim: it seeds ~/.nvm and links
+        # nvm.sh and nvm-exec into it before loading the real script, which is
+        # what lets zshrc find nvm under NVM_DIR afterwards. `brew --prefix`
+        # without a formula always succeeds, so this is safe under --dry-run,
+        # and it drops the /opt/homebrew hardcode that broke Intel macs.
+        nvm_sh="$(brew --prefix)/opt/nvm/nvm.sh"
     else
-        if [ -s "$HOME/.nvm/nvm.sh" ]; then
+        if [ -s "$NVM_DIR/nvm.sh" ]; then
             info "nvm already installed at ~/.nvm"
         else
             run bash -c \
                 "curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh | bash"
         fi
-        NVM_DIR="$HOME/.nvm"
+        nvm_sh="$NVM_DIR/nvm.sh"
     fi
     export NVM_DIR
 
@@ -119,17 +133,20 @@ step_nvm() {
     # Do NOT source ~/.profile here. It ends in `exec zsh -l`, which replaces
     # this script's process, so everything after it — including the node
     # install below — silently never ran.
-    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-        warn "nvm.sh not found under $NVM_DIR, skipping node install"
+    if [ ! -s "$nvm_sh" ]; then
+        warn "nvm.sh not found at $nvm_sh, skipping node install"
         return 0
     fi
     if [ "$DRY_RUN" = 1 ]; then
-        info "[dry-run] nvm install $NODE_VERSION"
+        info "[dry-run] nvm install $NODE_VERSION && nvm alias default $NODE_VERSION"
         return 0
     fi
-    # shellcheck disable=SC1091
-    . "$NVM_DIR/nvm.sh"
+    # shellcheck disable=SC1090
+    . "$nvm_sh"
     nvm install "$NODE_VERSION"
+    # `nvm install` sets the default only when there is not one already, so a
+    # machine with an older default keeps resolving `node` to it. Move it.
+    nvm alias default "$NODE_VERSION"
 }
 
 step_python() {

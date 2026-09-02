@@ -41,7 +41,7 @@ profile_steps() {
     case "$1" in
         linux-base)
             echo "apt_update apt_general oh_my_zsh oh_my_tmux nerd_fonts gogh
-                  ranger fzf bat lazygit neovim"
+                  ranger fzf bat lazygit nvm neovim"
             ;;
         linux-server)
             echo "oh_my_zsh oh_my_tmux ranger fzf lazygit nvm neovim
