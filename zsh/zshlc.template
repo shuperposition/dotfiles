@@ -13,6 +13,12 @@
 # alias ts='trash-restore'
 # alias te='trash-empty'
 
+# Claude settings
+# alias claude-mc="CLAUDE_CONFIG_DIR=~/.claude-mc claude"
+# alias claude-ut="CLAUDE_CONFIG_DIR=~/.claude-ut claude"
+# alias cm-mc="CLAUDE_CONFIG_DIR=~/.claude-mc claude-monitor --plan max20"
+# alias cm-ut="CLAUDE_CONFIG_DIR=~/.claude-ut claude-monitor --plan max20"
+
 # SSHFS listing
 # alias mls="ps aux | grep -i sftp | grep -v grep"
 
