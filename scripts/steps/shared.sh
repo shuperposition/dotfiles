@@ -147,6 +147,19 @@ step_nvm() {
     # `nvm install` sets the default only when there is not one already, so a
     # machine with an older default keeps resolving `node` to it. Move it.
     nvm alias default "$NODE_VERSION"
+
+    # zshrc loads nvm lazily, through `node`/`npm`/`npx` shell *functions*, so
+    # the node bin directory never actually joins PATH. Anything that is not an
+    # interactive zsh -- Claude Code's `/bin/sh -c` hooks, launchd agents,
+    # editor subprocesses -- then dies with "node: command not found". Link the
+    # pinned binaries into ~/.local/bin, which zshrc prepends to PATH and every
+    # child process inherits. Interactively the functions still shadow these, so
+    # `nvm use` keeps switching versions exactly as before.
+    for _nvm_bin in node npm npx; do
+        link "$NVM_DIR/versions/node/$NODE_VERSION/bin/$_nvm_bin" \
+            "$HOME/.local/bin/$_nvm_bin"
+    done
+    unset _nvm_bin
 }
 
 step_python() {
@@ -158,4 +171,63 @@ step_ssh_config() {
     need_dir "$HOME/.ssh"
     copy_if_absent "$DOTFILES/ssh/config" "$HOME/.ssh/config"
     info "review ~/.ssh/config: the IdentityFile paths are examples"
+}
+
+# --- claude code ------------------------------------------------------------
+
+# Plugins to install, as `<plugin>@<marketplace> <github repo>`.
+#
+# The marketplace half of the id is the name that marketplace's manifest
+# declares, which is not always the repo name (claude-mem publishes the
+# `thedotmack` marketplace) — `claude plugin install` resolves against the
+# declared name, so both halves are listed explicitly rather than derived.
+CLAUDE_PLUGINS="
+academic-research-skills@academic-research-skills Imbad0202/academic-research-skills
+claude-mem-cowork@thedotmack                      thedotmack/claude-mem
+andrej-karpathy-skills@karpathy-skills            forrestchang/andrej-karpathy-skills
+ponytail@ponytail                                 DietrichGebert/ponytail
+i-have-adhd@i-have-adhd                           ayghri/i-have-adhd
+"
+
+# Install the Claude Code plugins above, adding each marketplace first.
+#
+# Plugins live in the Claude config directory rather than in this repo, so a
+# new machine — or the same machine under a different CLAUDE_CONFIG_DIR —
+# starts with none of them. Installing also enables the plugin, which is the
+# whole of the setup: nothing here needs linking.
+#
+# What is already present is read back from the CLI instead of being assumed,
+# because neither subcommand is a no-op on an existing entry: `marketplace add`
+# re-clones, and `install` can move a plugin to a newer release. Re-running
+# this step must not quietly upgrade anything — use `claude plugin update` for
+# that, deliberately.
+step_claude_plugins() {
+    if ! have claude; then
+        warn "claude is not on PATH, skipping plugins"
+        return 0
+    fi
+
+    # Strip the indent and tree glyph: "  > ponytail@ponytail" becomes
+    # "ponytail@ponytail", so names can be matched whole below. Matching the
+    # raw output as a substring would let one name match inside another's.
+    markets=$(claude plugin marketplace list 2> /dev/null | sed 's/^[^[:alnum:]]*//')
+    plugins=$(claude plugin list 2> /dev/null | sed 's/^[^[:alnum:]]*//')
+
+    echo "$CLAUDE_PLUGINS" | while read -r id repo; do
+        [ -n "$id" ] || continue
+
+        if printf '%s\n' "$markets" | grep -qxF "${id#*@}"; then
+            info "marketplace ${id#*@} already configured"
+        else
+            run claude plugin marketplace add "$repo"
+        fi
+
+        if printf '%s\n' "$plugins" | grep -qxF "$id"; then
+            info "$id already installed"
+        else
+            run claude plugin install "$id" --scope user
+        fi
+    done
+
+    info "restart claude to pick the plugins up"
 }
