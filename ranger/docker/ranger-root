@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Run ranger in a container as root, on the current directory.
+set -euo pipefail
+
+IMAGE="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
+WORKDIR="$(pwd)"
+
+# Pick the first free container name: sm-ranger-root-0, sm-ranger-root-1, ...
+BASE_NAME="sm-ranger-root"
+i=0
+NAME="${BASE_NAME}-${i}"
+while docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; do
+    i=$((i + 1))
+    NAME="${BASE_NAME}-${i}"
+done
+
+docker run --rm -it \
+    --gpus all \
+    -v "${WORKDIR}:/home" \
+    -w /home \
+    --name "${NAME}" \
+    "${IMAGE}" \
+    ranger "$@"

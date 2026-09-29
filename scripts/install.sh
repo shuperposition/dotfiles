@@ -44,7 +44,7 @@ profile_steps() {
                   ranger fzf bat lazygit nvm neovim claude_plugins"
             ;;
         linux-server)
-            echo "oh_my_zsh oh_my_tmux ranger fzf lazygit nvm neovim
+            echo "oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit nvm neovim
                   anaconda conda_packages claude_plugins"
             ;;
         linux-desktop)

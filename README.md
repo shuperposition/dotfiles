@@ -108,6 +108,7 @@ Marketplaces`.
 | `stylua/` | `~/.config/stylua` |
 | `tmux/tmux.conf.local` | `~/.tmux.conf.local` |
 | `ranger/*` | `~/.config/ranger/` |
+| `ranger/docker/{ranger,ranger-root}` | `~/.local/bin/` *(Linux, `ranger_docker` step; also builds `ranger/docker/Dockerfile`)* |
 | `aerospace/aerospace.toml` | `~/.config/aerospace/aerospace.toml` |
 | `clang-format/clang-format-{ubuntu,macos}.yml` | `~/.clang-format` |
 | `gdb/gdbinit` | `~/.gdbinit` |

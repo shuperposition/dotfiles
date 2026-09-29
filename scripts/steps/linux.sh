@@ -128,6 +128,20 @@ step_docker() {
     run sudo docker run --rm hello-world
 }
 
+# ranger/ranger-root wrappers that run ranger in a container on $PWD. Builds
+# the image only when missing, so re-runs do not rebuild it.
+step_ranger_docker() {
+    if ! have docker; then
+        warn "docker not found, skipping"
+        return 0
+    fi
+    image="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
+    docker image inspect "$image" > /dev/null 2>&1 ||
+        run docker build -t "$image" "$DOTFILES/ranger/docker"
+    link "$DOTFILES/ranger/docker/ranger" "$HOME/.local/bin/ranger"
+    link "$DOTFILES/ranger/docker/ranger-root" "$HOME/.local/bin/ranger-root"
+}
+
 step_nvidia_driver() {
     driver=$(ubuntu-drivers devices | awk '/recommended/ {print $3}')
     [ -n "$driver" ] || die "no recommended NVIDIA driver found"
