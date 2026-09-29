@@ -380,3 +380,10 @@ fi
 
 # Powerlevel10k settings
 [[ -f ~/dotfiles/zsh/p10k.zsh ]] && source ~/dotfiles/zsh/p10k.zsh
+
+# bun
+if [[ -d ~/.bun ]]; then
+    export BUN_INSTALL="$HOME/.bun"
+    path_prepend "$BUN_INSTALL/bin"
+    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+fi
