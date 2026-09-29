@@ -162,6 +162,18 @@ step_nvm() {
     unset _nvm_bin
 }
 
+# claude-mem's hooks run under bun. SHELL=sh stops the upstream installer from
+# appending to ~/.zshrc (a symlink into this repo); the ~/.local/bin link puts
+# bun on PATH for hooks, as step_nvm does for node.
+step_bun() {
+    if [ -x "$HOME/.bun/bin/bun" ]; then
+        info "bun already installed at ~/.bun"
+    else
+        run env SHELL=sh bash -c "curl -fsSL https://bun.sh/install | bash"
+    fi
+    link "$HOME/.bun/bin/bun" "$HOME/.local/bin/bun"
+}
+
 step_python() {
     run pip3 install -U pip pip-autoremove ipdb pdbpp
     link "$DOTFILES/pdb/pdbrc.py" "$HOME/.pdbrc.py"
@@ -183,7 +195,7 @@ step_ssh_config() {
 # declared name, so both halves are listed explicitly rather than derived.
 CLAUDE_PLUGINS="
 academic-research-skills@academic-research-skills Imbad0202/academic-research-skills
-claude-mem-cowork@thedotmack                      thedotmack/claude-mem
+claude-mem@thedotmack                             thedotmack/claude-mem
 andrej-karpathy-skills@karpathy-skills            forrestchang/andrej-karpathy-skills
 ponytail@ponytail                                 DietrichGebert/ponytail
 i-have-adhd@i-have-adhd                           ayghri/i-have-adhd
