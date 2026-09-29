@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Run ranger in a container as the host user, on the current directory.
+set -euo pipefail
+
+IMAGE="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
+WORKDIR="$(pwd)"
+
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
+HOST_USER="$(id -un)"
+HOST_GROUP="$(id -gn)"
+
+# Pick the first free container name: sm-ranger-0, sm-ranger-1, ...
+BASE_NAME="sm-ranger"
+i=0
+NAME="${BASE_NAME}-${i}"
+while docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; do
+    i=$((i + 1))
+    NAME="${BASE_NAME}-${i}"
+done
+
+docker run --rm -it \
+    --gpus all \
+    -v "${WORKDIR}:/home" \
+    -w /home \
+    -e HOST_UID="${HOST_UID}" \
+    -e HOST_GID="${HOST_GID}" \
+    -e HOST_USER="${HOST_USER}" \
+    -e HOST_GROUP="${HOST_GROUP}" \
+    --name "${NAME}" \
+    "${IMAGE}" \
+    bash -c '
+        set -e
+        # Create matching group (skip if GID already exists)
+        if ! getent group "${HOST_GID}" >/dev/null; then
+            groupadd -g "${HOST_GID}" "${HOST_GROUP}"
+        fi
+
+        # Create matching user (skip if UID already exists)
+        if ! getent passwd "${HOST_UID}" >/dev/null; then
+            useradd -u "${HOST_UID}" -g "${HOST_GID}" -d /home -M -s /bin/bash "${HOST_USER}"
+        fi
+        USER_NAME="$(getent passwd "${HOST_UID}" | cut -d: -f1)"
+
+        # Drop to the matching user, preserving env
+        exec setpriv --reuid "${HOST_UID}" --regid "${HOST_GID}" --init-groups \
+            env HOME=/home USER="${USER_NAME}" "$@"
+    ' bash ranger "$@"

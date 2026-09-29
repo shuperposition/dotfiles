@@ -41,11 +41,11 @@ profile_steps() {
     case "$1" in
         linux-base)
             echo "apt_update apt_general oh_my_zsh oh_my_tmux nerd_fonts gogh
-                  ranger fzf bat lazygit nvm neovim"
+                  ranger fzf bat lazygit nvm bun neovim claude_plugins"
             ;;
         linux-server)
-            echo "oh_my_zsh oh_my_tmux ranger fzf lazygit nvm neovim
-                  anaconda conda_packages"
+            echo "oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit nvm bun neovim
+                  anaconda conda_packages claude_plugins"
             ;;
         linux-desktop)
             echo "desktop_general docker nvidia_driver nvidia_container_toolkit
@@ -53,8 +53,8 @@ profile_steps() {
             ;;
         macos)
             echo "essentials terminal_utilities desktop_applications
-                  iterm2_colors oh_my_zsh oh_my_tmux ranger fzf nvm neovim
-                  anaconda aerospace python cpp"
+                  iterm2_colors oh_my_zsh oh_my_tmux ranger fzf nvm bun neovim
+                  anaconda aerospace python cpp claude_plugins"
             ;;
         *) return 1 ;;
     esac

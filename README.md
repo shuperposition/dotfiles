@@ -27,10 +27,10 @@ scratch directory that is removed on exit.
 
 | Profile | For |
 | --- | --- |
-| `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node |
-| `linux-server` | A server account: shell, tools and conda, no desktop packages |
+| `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node, claude plugins |
+| `linux-server` | A server account: shell, tools, conda and claude plugins, no desktop packages |
 | `linux-desktop` | Desktop extras: docker, NVIDIA, language toolchains, apps |
-| `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace |
+| `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, claude plugins |
 
 ### Layout
 
@@ -76,6 +76,27 @@ Two deliberate exceptions:
   installed node versions along with the keg.
 - **lazygit on Linux** resolves the latest release at install time.
 
+## Claude Code plugins
+
+`claude_plugins` installs the plugin set this setup expects, so a new machine —
+or the same machine under a different `CLAUDE_CONFIG_DIR` — ends up with the
+same one:
+
+```sh
+./scripts/install.sh claude_plugins
+```
+
+It adds each plugin's marketplace, then installs the plugin at user scope,
+which also enables it; restart `claude` afterwards. Nothing is linked and
+nothing lands in this repo — plugins live in the Claude config directory. The
+list is `CLAUDE_PLUGINS` at the bottom of `scripts/steps/shared.sh`, one
+`<plugin>@<marketplace> <github repo>` per line; add a line to add a plugin.
+
+The step skips whatever is already there rather than reinstalling it, so it
+will not move a plugin to a newer release behind your back. Upgrades are
+`claude plugin update <plugin>`, or the auto-update toggle under `/plugin ->
+Marketplaces`.
+
 ## What gets linked where
 
 | Repo path | Destination |
@@ -87,6 +108,7 @@ Two deliberate exceptions:
 | `stylua/` | `~/.config/stylua` |
 | `tmux/tmux.conf.local` | `~/.tmux.conf.local` |
 | `ranger/*` | `~/.config/ranger/` |
+| `ranger/docker/{ranger,ranger-root}` | `~/.local/bin/` *(Linux, `ranger_docker` step; also builds `ranger/docker/Dockerfile`)* |
 | `aerospace/aerospace.toml` | `~/.config/aerospace/aerospace.toml` |
 | `clang-format/clang-format-{ubuntu,macos}.yml` | `~/.clang-format` |
 | `gdb/gdbinit` | `~/.gdbinit` |
