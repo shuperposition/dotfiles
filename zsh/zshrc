@@ -16,72 +16,8 @@ fi
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
 plugins=(
   git
   sudo
@@ -98,9 +34,8 @@ plugins=(
 
 # Oh-my-zsh completions settings
 # FPATH must be extended before oh-my-zsh.sh, which runs compinit itself.
-if type brew &>/dev/null; then
-  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
-fi
+# Brew's prefix is derived from its path rather than `brew --prefix`, a fork.
+(( $+commands[brew] )) && FPATH="${commands[brew]:h:h}/share/zsh/site-functions:${FPATH}"
 
 # lmod exports FPATH with a group-writable ksh_funcs directory owned by another
 # uid, which we cannot chmod. compinit refuses to complete from it and oh-my-zsh
@@ -132,7 +67,7 @@ export LANG=en_US.UTF-8
 export LANG_JP=C.UTF-8
 export LC_CTYPE=$LANG_JP
 
-# Alawyas list directory after cd
+# Always list directory after cd
 function chpwd() {ls -a}
 
 # Prepend a directory to PATH, if it exists and is not already present.
@@ -145,16 +80,78 @@ function path_prepend() {
     esac
 }
 
-# Set PATH to includes user's local bin if it exists
+# PATH settings
+# path_prepend puts each entry in front, so the last one wins: ~/.local/bin goes
+# last because it holds the pinned nvim and the node/bun shims. Tools are put on
+# PATH before anything below probes for them with `command -v`.
+case $OSTYPE in
+    darwin*) path_prepend "/opt/homebrew/opt/trash-cli/bin" ;;
+esac
+
+# Conda settings
+# Activating the base environment shells out to Python and costs ~220ms per
+# shell. Sourcing conda.sh (which defines the `conda` function) costs ~1ms, so
+# do that eagerly and replay a cached copy of the activation instead. The cache
+# is rebuilt whenever the conda installation changes; delete it to force a
+# refresh: rm ${XDG_CACHE_HOME:-~/.cache}/conda-base-activate.zsh
+function _conda_init() {
+    local root
+    for root in /opt/homebrew/anaconda3 ~/anaconda3 ~/miniconda3; do
+        [[ -f $root/etc/profile.d/conda.sh ]] && break
+        root=""
+    done
+    [[ -n $root ]] || return 0
+
+    source "$root/etc/profile.d/conda.sh"
+
+    local cache="${XDG_CACHE_HOME:-$HOME/.cache}/conda-base-activate.zsh"
+    # Rebuild when missing, stale, or malformed. A cache captured while base was
+    # already active is a *reactivation* diff that omits CONDA_PREFIX, leaving
+    # conda half-activated (CONDA_SHLVL=1, no CONDA_PREFIX) and crashing every
+    # later `conda activate/deactivate`.
+    if [[ ! -s $cache || $root/conda-meta/history -nt $cache ]] \
+        || ! grep -q '^export CONDA_PREFIX=' "$cache"; then
+        mkdir -p "${cache:h}"
+        # Drop the PS1 assignment (powerlevel10k renders the environment from
+        # CONDA_PROMPT_MODIFIER) and rewrite conda's absolute PATH snapshot into a
+        # prepend, so the cache composes with whatever PATH we have. Force a fresh
+        # level-0 activation (CONDA_SHLVL=0, prefix vars unset) so conda emits the
+        # full activation — including CONDA_PREFIX — instead of a reactivation diff.
+        env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER CONDA_SHLVL=0 \
+            "$root/bin/conda" shell.zsh activate base 2> /dev/null \
+            | grep -v '^PS1=' \
+            | sed "s|^export PATH=.*|path_prepend '$root/condabin'; path_prepend '$root/bin'|" \
+            > "$cache"
+    fi
+    source "$cache"
+}
+_conda_init
+unset -f _conda_init
+
+# Bun settings
+if [[ -d ~/.bun ]]; then
+    export BUN_INSTALL="$HOME/.bun"
+    path_prepend "$BUN_INSTALL/bin"
+    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
+fi
+
+# Local bin
 path_prepend "$HOME/.local/bin"
 
 # Terminal settings
 # This is for Gogh terminal color scheme specifically for Gnome terminal
-case `uname` in
-    Linux)
+case $OSTYPE in
+    linux*)
         export TERMINAL=gnome-terminal
     ;;
 esac
+
+# eza comes from brew on macOS, conda base (no sudo) on servers.
+if command -v eza > /dev/null 2>&1; then
+    alias ls="eza"
+    alias ll="eza -lhg"
+    alias la="eza -alhg"
+fi
 
 # Bat settings
 # Debian and Ubuntu ship bat as batcat, due to a name clash with another package
@@ -296,10 +293,10 @@ alias gf='git fetch --all --verbose'
 # Git show graph
 alias gg='git log --all --oneline --decorate --graph --color'
 # Git show graph pretty
-pretty=("%C(auto)%h%C(magenta) %cd %C(yellow)[%cr]%C(auto)%d%n"
-        "%C(auto)%s%n %C(green)Committer:%cN <%cE>%n"
-        "%C(blue)Author :%aN <%aE>%Creset")
 function ggg() {
+    local pretty=("%C(auto)%h%C(magenta) %cd %C(yellow)[%cr]%C(auto)%d%n"
+                  "%C(auto)%s%n %C(green)Committer:%cN <%cE>%n"
+                  "%C(blue)Author :%aN <%aE>%Creset")
     git log --graph --all --date=local --pretty=format:"$pretty"
 }
 # Git prune local branch
@@ -323,71 +320,9 @@ function gpa() {
     echo "finished pulling!"
 }
 
-# macOS specific settings
-case `uname` in
-    Darwin)
-        path_prepend "/opt/homebrew/opt/trash-cli/bin"
-    ;;
-esac
-
-# Conda settings
-# Activating the base environment shells out to Python and costs ~220ms per
-# shell. Sourcing conda.sh (which defines the `conda` function) costs ~1ms, so
-# do that eagerly and replay a cached copy of the activation instead. The cache
-# is rebuilt whenever the conda installation changes; delete it to force a
-# refresh: rm ${XDG_CACHE_HOME:-~/.cache}/conda-base-activate.zsh
-function _conda_init() {
-    local root
-    for root in /opt/homebrew/anaconda3 ~/anaconda3 ~/miniconda3; do
-        [[ -f $root/etc/profile.d/conda.sh ]] && break
-        root=""
-    done
-    [[ -n $root ]] || return 0
-
-    source "$root/etc/profile.d/conda.sh"
-
-    local cache="${XDG_CACHE_HOME:-$HOME/.cache}/conda-base-activate.zsh"
-    # Rebuild when missing, stale, or malformed. A cache captured while base was
-    # already active is a *reactivation* diff that omits CONDA_PREFIX, leaving
-    # conda half-activated (CONDA_SHLVL=1, no CONDA_PREFIX) and crashing every
-    # later `conda activate/deactivate`.
-    if [[ ! -s $cache || $root/conda-meta/history -nt $cache ]] \
-        || ! grep -q '^export CONDA_PREFIX=' "$cache"; then
-        mkdir -p "${cache:h}"
-        # Drop the PS1 assignment (powerlevel10k renders the environment from
-        # CONDA_PROMPT_MODIFIER) and rewrite conda's absolute PATH snapshot into a
-        # prepend, so the cache composes with whatever PATH we have. Force a fresh
-        # level-0 activation (CONDA_SHLVL=0, prefix vars unset) so conda emits the
-        # full activation — including CONDA_PREFIX — instead of a reactivation diff.
-        env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER CONDA_SHLVL=0 \
-            "$root/bin/conda" shell.zsh activate base 2> /dev/null \
-            | grep -v '^PS1=' \
-            | sed "s|^export PATH=.*|path_prepend '$root/condabin'; path_prepend '$root/bin'|" \
-            > "$cache"
-    fi
-    source "$cache"
-}
-_conda_init
-unset -f _conda_init
-
-# eza comes from brew on macOS, conda base (no sudo) on servers.
-if command -v eza > /dev/null 2>&1; then
-    alias ls="eza"
-    alias ll="eza -lhg"
-    alias la="eza -alhg"
-fi
-
-# Local settings
-if [[ -f ~/.zshlc ]]; then
-    source ~/.zshlc
-fi
-
 # Powerlevel10k settings
 [[ -f ~/dotfiles/zsh/p10k.zsh ]] && source ~/dotfiles/zsh/p10k.zsh
 
-# bun
-if [[ -d ~/.bun ]]; then
-    export BUN_INSTALL="$HOME/.bun"
-    path_prepend "$BUN_INSTALL/bin"
-    [[ -s "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
-fi
+# Local settings
+# Last, so machine-local values override everything above.
+[[ -f ~/.zshlc ]] && source ~/.zshlc
