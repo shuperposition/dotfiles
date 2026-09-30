@@ -326,9 +326,6 @@ function gpa() {
 # macOS specific settings
 case `uname` in
     Darwin)
-        alias ls="eza"
-        alias ll="eza -lhg"
-        alias la="eza -alhg"
         path_prepend "/opt/homebrew/opt/trash-cli/bin"
     ;;
 esac
@@ -372,6 +369,13 @@ function _conda_init() {
 }
 _conda_init
 unset -f _conda_init
+
+# eza comes from brew on macOS, conda base (no sudo) on servers.
+if command -v eza > /dev/null 2>&1; then
+    alias ls="eza"
+    alias ll="eza -lhg"
+    alias la="eza -alhg"
+fi
 
 # Local settings
 if [[ -f ~/.zshlc ]]; then

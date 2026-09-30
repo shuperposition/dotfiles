@@ -108,7 +108,7 @@ step_miniconda() {
 
 step_conda_packages() {
     [ -f "$HOME/anaconda3/bin/conda" ] || die "anaconda not found at ~/anaconda3"
-    run "$HOME/anaconda3/bin/conda" install -c conda-forge -y \
+    run "$HOME/anaconda3/bin/conda" install --override-channels -c conda-forge -y \
         xsel tree eza bat nvtop fastfetch
     run "$HOME/anaconda3/bin/pip" install ranger-fm trash-cli
 }
