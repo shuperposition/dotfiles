@@ -2,6 +2,9 @@
 #
 # macOS install steps.
 
+# Pinned versions, collected here so they are easy to find and bump.
+GO_VERSION="go1.27.1"
+
 step_brew_update() {
     run brew update
     run brew upgrade
@@ -62,6 +65,25 @@ step_anaconda() {
 step_aerospace() {
     run brew install --cask nikitabobko/tap/aerospace
     link "$DOTFILES/aerospace/aerospace.toml" "$HOME/.config/aerospace/aerospace.toml"
+}
+
+step_gvm() {
+    run brew install bison mercurial
+    if [ -d "$HOME/.gvm" ]; then
+        info "gvm already installed at ~/.gvm"
+    else
+        # ~/.zshrc is a symlink into this repo; zsh/zshrc sources gvm itself.
+        run bash -c \
+            'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | GVM_NO_UPDATE_PROFILE=1 bash'
+    fi
+    if [ "$DRY_RUN" = 1 ]; then
+        info "[dry-run] gvm install $GO_VERSION -B && gvm use $GO_VERSION --default"
+        return 0
+    fi
+    # shellcheck disable=SC1091
+    . "$HOME/.gvm/scripts/gvm"
+    gvm install "$GO_VERSION" -B
+    gvm use "$GO_VERSION" --default
 }
 
 step_cpp() {

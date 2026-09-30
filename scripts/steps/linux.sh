@@ -166,7 +166,7 @@ step_gvm() {
         info "gvm already installed at ~/.gvm"
     else
         run bash -c \
-            'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | bash'
+            'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | GVM_NO_UPDATE_PROFILE=1 bash'
     fi
     if [ "$DRY_RUN" = 1 ]; then
         info "[dry-run] gvm install $GO_VERSION -B && gvm use $GO_VERSION --default"

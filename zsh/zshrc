@@ -224,6 +224,10 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
     function npx()  { _nvm_load; npx "$@"; }
 fi
 
+# Gvm settings (installed by step_gvm, which tells the installer not to edit
+# this file)
+[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+
 # Ssh-agent settings
 # Reuse a single agent across shells via a cached env file (no orphan agents).
 # macOS presets SSH_AUTH_SOCK via launchd, so this is a no-op there; it only

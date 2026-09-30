@@ -53,7 +53,7 @@ profile_steps() {
         macos)
             echo "essentials terminal_utilities desktop_applications
                   iterm2_colors oh_my_zsh oh_my_tmux ranger fzf nvm bun neovim
-                  anaconda aerospace python cpp claude_plugins"
+                  anaconda aerospace python cpp gvm claude_plugins"
             ;;
         *) return 1 ;;
     esac
