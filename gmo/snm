@@ -1,0 +1,8 @@
+#!/bin/sh
+# Node memory: SLURM_AVAIL_MEM (allocatable) vs PHYS_FREE_MEM (actually unused) vs
+# TOTAL_MEM. AVAIL_MEM=0 next to a large PHYS_FREE_MEM means someone used --mem=0,
+# claiming the whole node and blocking others even while GPUs sit idle.
+# sudo -n: snodes is mode 711 root:root, so the #! can't exec it directly and the
+# shell's `snodes="sudo snodes"` alias doesn't apply inside a script; NOPASSWD
+# means -n never prompts.
+exec sudo -n /usr/local/bin/snodes -m "$@"

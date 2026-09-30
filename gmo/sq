@@ -1,0 +1,15 @@
+#!/bin/sh
+# Queue listing with auto-fitted columns (args appended, e.g. `sq --me`).
+# Pipe-separated + column -t instead of squeue's %.<width>, which truncates rather
+# than wraps and silently conflates values (e.g. a cut-off GPU model with a bare
+# GPU count, or a cut-off DependencyNeverSatisfied).
+# %i not %A: %A prints an array's raw job id for every task; %i gives 5184292_0..3.
+# The fd-swap below drops this cluster's constant `Access/permission denied` noise
+# from squeue without swallowing real errors -- POSIX-only, not zsh MULTIOS-safe.
+# COMMAND is reduced to its basename to avoid line-wrap; the /^\// guard keeps a
+# literal "N/A" from being split on its slash.
+# Exit status is column's, not squeue's.
+{ squeue -o "%i|%j|%a|%u|%T|%l|%M|%R|%D|%b|%C|%m|%o" "$@" 2>&1 1>&3 \
+    | grep -v '^slurm_load_partitions: Access/permission denied' >&2; } 3>&1 \
+  | awk -F'|' 'BEGIN{OFS="|"} {if ($NF ~ /^\//) {n=split($NF,p,"/"); $NF=p[n]} print}' \
+  | column -t -s'|'

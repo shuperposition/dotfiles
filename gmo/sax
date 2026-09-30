@@ -1,0 +1,3 @@
+#!/bin/sh
+# Main job rows only -- no .batch/.extern/.N step rows.
+exec sa -X "$@"

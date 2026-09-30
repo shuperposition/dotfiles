@@ -1,0 +1,4 @@
+#!/bin/sh
+# sacct with auto-fitted columns; -P avoids truncated "...+" fields for column -t.
+# Exit status is column's, not sacct's.
+sacct -P -o User,JobID,Partition,NNodes,Submit,Start,End,Elapsed,State "$@" | column -t -s'|'

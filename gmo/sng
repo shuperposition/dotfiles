@@ -1,0 +1,8 @@
+#!/bin/sh
+# Node GPU allocation: GRES installed vs GRES_USED, with allocated device indices.
+# This is what Slurm has ALLOCATED, not utilisation -- for live use from inside a
+# running job: srun --overlap --jobid=<id> nvidia-smi.
+# sudo -n: snodes is mode 711 root:root, so the #! can't exec it directly and the
+# shell's `snodes="sudo snodes"` alias doesn't apply inside a script; NOPASSWD
+# means -n never prompts.
+exec sudo -n /usr/local/bin/snodes -g "$@"

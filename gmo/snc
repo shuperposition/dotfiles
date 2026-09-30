@@ -1,0 +1,6 @@
+#!/bin/sh
+# Node CPU allocation: ALLOC_CPUS / IDLE_CPU / TOTAL_CPU.
+# sudo -n: snodes is mode 711 root:root, so the #! can't exec it directly and the
+# shell's `snodes="sudo snodes"` alias doesn't apply inside a script; NOPASSWD
+# means -n never prompts.
+exec sudo -n /usr/local/bin/snodes -c "$@"
