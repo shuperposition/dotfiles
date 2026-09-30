@@ -6,9 +6,14 @@ IMAGE="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
 WORKDIR="$(pwd)"
 
 # Mount host volumes at identical paths so absolute symlinks (e.g. -> /storage3/...) resolve.
+# Disk layout is per server: add a case for each new host.
+case "$(hostname -s)" in
+    p-ws-40) ROOTS=(/home /storage2 /storage3) ;;
+    *)       ROOTS=(/home) ;;
+esac
 MOUNTS=()
 covered=0
-for r in /home /storage2 /storage3; do
+for r in "${ROOTS[@]}"; do
     [ -d "$r" ] || continue
     MOUNTS+=(-v "$r:$r")
     case "$WORKDIR/" in "$r/"*) covered=1 ;; esac
