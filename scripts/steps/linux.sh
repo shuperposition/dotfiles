@@ -138,8 +138,8 @@ step_ranger_docker() {
     image="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
     docker image inspect "$image" > /dev/null 2>&1 ||
         run docker build -t "$image" "$DOTFILES/ranger/docker"
-    link "$DOTFILES/ranger/docker/ranger" "$HOME/.local/bin/ranger"
-    link "$DOTFILES/ranger/docker/ranger-root" "$HOME/.local/bin/ranger-root"
+    link "$DOTFILES/ranger/ranger" "$HOME/.local/bin/ranger"
+    link "$DOTFILES/ranger/ranger-root" "$HOME/.local/bin/ranger-root"
 }
 
 step_nvidia_driver() {

@@ -5,6 +5,16 @@ set -euo pipefail
 IMAGE="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
 WORKDIR="$(pwd)"
 
+# Mount host volumes at identical paths so absolute symlinks (e.g. -> /storage3/...) resolve.
+MOUNTS=()
+covered=0
+for r in /home /storage2 /storage3; do
+    [ -d "$r" ] || continue
+    MOUNTS+=(-v "$r:$r")
+    case "$WORKDIR/" in "$r/"*) covered=1 ;; esac
+done
+[ "$covered" = 1 ] || MOUNTS+=(-v "$WORKDIR:$WORKDIR")
+
 # Pick the first free container name: sm-ranger-root-0, sm-ranger-root-1, ...
 BASE_NAME="sm-ranger-root"
 i=0
@@ -16,8 +26,9 @@ done
 
 docker run --rm -it \
     --gpus all \
-    -v "${WORKDIR}:/home" \
-    -w /home \
+    "${MOUNTS[@]}" \
+    -w "${WORKDIR}" \
+    -e XDG_CONFIG_HOME="${HOME}/.config" \
     --name "${NAME}" \
     "${IMAGE}" \
     ranger "$@"

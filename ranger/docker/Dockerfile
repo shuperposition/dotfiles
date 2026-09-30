@@ -1,4 +1,4 @@
-# Image used by ranger/docker/{ranger,ranger-root}. Built by step_ranger_docker as
+# Image used by ranger/{ranger,ranger-root}. Built by step_ranger_docker as
 # nvidia/cuda:12.8.1-base-ubuntu24.04-sm.
 FROM nvidia/cuda:12.8.1-base-ubuntu24.04
 RUN apt-get update && \
