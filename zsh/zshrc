@@ -226,7 +226,13 @@ fi
 
 # Gvm settings (installed by step_gvm, which tells the installer not to edit
 # this file)
-[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+# gvm ends with `cd .` and wraps cd to auto-switch on .go-version, and both
+# fire chpwd (ls -a) during startup and on every cd. Silence the load and
+# drop the wrapper; the default Go still comes from environments/default.
+if [[ -s "$HOME/.gvm/scripts/gvm" ]]; then
+    source "$HOME/.gvm/scripts/gvm" > /dev/null
+    unfunction cd __gvm_oldcd 2> /dev/null
+fi
 
 # Ssh-agent settings
 # Reuse a single agent across shells via a cached env file (no orphan agents).
