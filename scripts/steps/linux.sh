@@ -4,7 +4,7 @@
 
 # Pinned versions, collected here so they are easy to find and bump.
 NERD_FONT_VERSION="v3.4.0"
-ANACONDA_VERSION="2025.06-0"
+ANACONDA_VERSION="2026.07-1"
 LAZYGIT_VERSION="0.63.0"
 GO_VERSION="go1.23.4"
 DRAWIO_VERSION="24.1.0"
