@@ -2,8 +2,7 @@
 #
 # Steps that are identical on Linux and macOS.
 #
-# Each step is a `step_<name>` function. The dispatcher prints the surrounding
-# "Started / Finished" banner, so steps only contain the work itself.
+# Each step is a `step_<name>` function; install.sh prints the banner around it.
 
 # Pinned versions, collected here so they are easy to find and bump.
 NODE_VERSION="v20.19.6"
@@ -175,7 +174,11 @@ step_bun() {
 }
 
 step_python() {
-    run pip3 install -U pip pip-autoremove ipdb pdbpp
+    if root=$(conda_root); then
+        run "$root/bin/pip" install -U pip-autoremove ipdb pdbpp
+    else
+        warn "no conda found, skipping pip packages (run the anaconda step first)"
+    fi
     link "$DOTFILES/pdb/pdbrc.py" "$HOME/.pdbrc.py"
 }
 

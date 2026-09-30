@@ -29,7 +29,7 @@ scratch directory that is removed on exit.
 | --- | --- |
 | `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node, claude plugins |
 | `linux-server` | A server account: shell, tools, conda and claude plugins, no desktop packages |
-| `linux-desktop` | Desktop extras: docker, NVIDIA, language toolchains, apps |
+| `linux-desktop` | Desktop extras: docker, NVIDIA, anaconda, language toolchains, apps |
 | `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, claude plugins |
 
 ### Layout
@@ -55,7 +55,7 @@ of the step files:
 | Where | Pins |
 | --- | --- |
 | `scripts/steps/shared.sh` | `NEOVIM_VERSION`, `NODE_VERSION`, `NVM_VERSION` |
-| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `ANACONDA_VERSION`, `GO_VERSION`, `DRAWIO_VERSION` |
+| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `LAZYGIT_VERSION`, `ANACONDA_VERSION`, `GO_VERSION`, `DRAWIO_VERSION` |
 
 Neovim is the one that matters most. `NEOVIM_VERSION` is held at 0.11.x on all
 three platforms because nvim-treesitter's `master` branch breaks on 0.12 — the
@@ -74,7 +74,7 @@ Two deliberate exceptions:
   the version that actually affects what you run — is pinned on both, and
   `NVM_DIR` is `~/.nvm` on both so that `brew upgrade nvm` cannot delete the
   installed node versions along with the keg.
-- **lazygit on Linux** resolves the latest release at install time.
+- **Homebrew casks and formulae on macOS** roll forward; brew cannot pin them.
 
 ## Claude Code plugins
 

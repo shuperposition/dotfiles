@@ -44,7 +44,7 @@ step_neovim() {
     # Homebrew has no versioned neovim formula, so nvim comes from the pinned
     # upstream tarball (see NEOVIM_VERSION in shared.sh); the companion tools
     # still come from brew.
-    run brew install ripgrep fd lazygit
+    run brew install ripgrep fd
     # A brew-installed neovim sits in /opt/homebrew/bin and shadows
     # ~/.local/bin on PATH, which silently defeats the pin. Remove it rather
     # than leave a note asking someone to remember.

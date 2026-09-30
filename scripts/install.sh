@@ -33,15 +33,14 @@ else
 fi
 
 # --- profiles ---------------------------------------------------------------
-# Named step sets, reproducing what the previous four install_*.sh files
-# encoded. A case statement rather than an associative array, so this still
+# Named step sets. A case statement rather than an associative array, so this still
 # works on the bash 3.2 that macOS ships.
 
 profile_steps() {
     case "$1" in
         linux-base)
             echo "apt_update apt_general oh_my_zsh oh_my_tmux nerd_fonts gogh
-                  ranger fzf bat lazygit nvm bun neovim claude_plugins"
+                  ranger fzf lazygit nvm bun neovim claude_plugins"
             ;;
         linux-server)
             echo "oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit nvm bun neovim
@@ -49,7 +48,7 @@ profile_steps() {
             ;;
         linux-desktop)
             echo "desktop_general docker nvidia_driver nvidia_container_toolkit
-                  python cpp java gvm tfenv spotify screenkey"
+                  anaconda python cpp java gvm tfenv spotify screenkey"
             ;;
         macos)
             echo "essentials terminal_utilities desktop_applications

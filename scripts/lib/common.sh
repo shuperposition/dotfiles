@@ -34,6 +34,19 @@ have() { command -v "$1" > /dev/null 2>&1; }
 is_macos() { [ "$(uname)" = Darwin ]; }
 is_linux() { [ "$(uname)" = Linux ]; }
 
+# Root of the conda install, searched in the same order as zsh/zshrc.
+# Python tooling goes into conda base: system pip refuses installs (PEP 668)
+# and servers have no sudo.
+conda_root() {
+    for root in /opt/homebrew/anaconda3 "$HOME/anaconda3" "$HOME/miniconda3"; do
+        if [ -x "$root/bin/pip" ]; then
+            printf '%s' "$root"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Architecture slug as used by upstream release tarballs.
 arch_slug() {
     case "$(uname -m)" in

@@ -5,6 +5,7 @@
 # Pinned versions, collected here so they are easy to find and bump.
 NERD_FONT_VERSION="v3.4.0"
 ANACONDA_VERSION="2025.06-0"
+LAZYGIT_VERSION="0.63.0"
 GO_VERSION="go1.23.4"
 DRAWIO_VERSION="24.1.0"
 
@@ -22,6 +23,11 @@ step_apt_general() {
         htop nvtop glances neofetch trash-cli
     run sudo apt install -y net-tools nmap
     run sudo apt install -y fcitx5 fcitx5-chewing fcitx5-mozc fcitx5-pinyin
+    # Ubuntu ships bat as batcat because of a name clash. ranger's scope.sh
+    # calls `bat`, and it does not see zshrc's alias.
+    if [ -e /usr/bin/batcat ]; then
+        link /usr/bin/batcat "$HOME/.local/bin/bat"
+    fi
 }
 
 step_nerd_fonts() {
@@ -39,34 +45,21 @@ step_nerd_fonts() {
 
 step_gogh() {
     run sudo apt install -y dconf-cli uuid-runtime
-    clone_or_pull https://github.com/Gogh-Co/Gogh.git "$HOME/gogh" --depth=1
+    tmp=$(mktempdir)
+    clone_or_pull https://github.com/Gogh-Co/Gogh.git "$tmp/gogh" --depth=1
     # Required by Gogh's installers when running under GNOME Terminal
     export TERMINAL=gnome-terminal
-    run "$HOME/gogh/installs/gruvbox-dark.sh"
-    run "$HOME/gogh/installs/gruvbox.sh"
-    run rm -rf "$HOME/gogh"
-}
-
-step_bat() {
-    run sudo apt install -y bat
-    # Ubuntu ships the binary as batcat because of a name clash. Provide a
-    # `bat` on PATH. need_dir first: ~/.local/bin may not exist yet.
-    need_dir "$HOME/.local/bin"
-    if [ -e /usr/bin/batcat ]; then
-        link /usr/bin/batcat "$HOME/.local/bin/bat"
-    fi
+    run "$tmp/gogh/installs/gruvbox-dark.sh"
+    run "$tmp/gogh/installs/gruvbox.sh"
 }
 
 step_lazygit() {
     # Installed under ~/.local/bin so the step needs no sudo and works the
     # same on a workstation and on a server account.
     need_dir "$HOME/.local/bin"
-    version=$(curl -fsSL "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" |
-        grep -Po '"tag_name": *"v\K[^"]*')
-    [ -n "$version" ] || die "could not determine the latest lazygit version"
-    info "installing lazygit $version"
+    v=$LAZYGIT_VERSION
     tmp=$(mktempdir)
-    fetch "https://github.com/jesseduffield/lazygit/releases/download/v${version}/lazygit_${version}_Linux_x86_64.tar.gz" \
+    fetch "https://github.com/jesseduffield/lazygit/releases/download/v${v}/lazygit_${v}_Linux_$(arch_slug).tar.gz" \
         "$tmp/lazygit.tar.gz"
     run tar -C "$tmp" -xzf "$tmp/lazygit.tar.gz" lazygit
     run install -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
@@ -91,26 +84,11 @@ step_anaconda() {
     run bash "$tmp/${installer}" -b -p "$HOME/anaconda3"
 }
 
-step_miniconda() {
-    case "$(uname -m)" in
-        x86_64) installer="Miniconda3-latest-Linux-x86_64.sh" ;;
-        aarch64 | arm64) installer="Miniconda3-latest-Linux-aarch64.sh" ;;
-        *) die "unsupported architecture: $(uname -m)" ;;
-    esac
-    if [ -d "$HOME/miniconda3" ]; then
-        info "miniconda already installed at ~/miniconda3"
-        return 0
-    fi
-    tmp=$(mktempdir)
-    fetch "https://repo.anaconda.com/miniconda/${installer}" "$tmp/${installer}"
-    run bash "$tmp/${installer}" -b -p "$HOME/miniconda3"
-}
-
 step_conda_packages() {
-    [ -f "$HOME/anaconda3/bin/conda" ] || die "anaconda not found at ~/anaconda3"
-    run "$HOME/anaconda3/bin/conda" install --override-channels -c conda-forge -y \
+    root=$(conda_root) || die "no conda found (run the anaconda step first)"
+    run "$root/bin/conda" install --override-channels -c conda-forge -y \
         xsel tree eza bat nvtop fastfetch
-    run "$HOME/anaconda3/bin/pip" install ranger-fm trash-cli
+    run "$root/bin/pip" install ranger-fm trash-cli
 }
 
 # --- desktop ----------------------------------------------------------------
@@ -171,9 +149,12 @@ step_cpp() {
         gcc g++ gdb libstdc++-12-dev llvm lldb
     link "$DOTFILES/gdb/gdbinit" "$HOME/.gdbinit"
     link "$DOTFILES/clang-format/clang-format-ubuntu.yml" "$HOME/.clang-format"
-    # gdb-dashboard needs pygments. Use whichever pip3 is on PATH; the old
-    # hardcoded ~/.pyenv/shims/pip3 pointed at a pyenv nothing here installs.
-    run pip3 install -U pygments
+    # gdb-dashboard needs pygments.
+    if root=$(conda_root); then
+        run "$root/bin/pip" install -U pygments
+    else
+        warn "no conda found, skipping pygments for gdb-dashboard"
+    fi
 }
 
 step_java() {
