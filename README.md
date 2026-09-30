@@ -108,7 +108,7 @@ Marketplaces`.
 | `stylua/` | `~/.config/stylua` |
 | `tmux/tmux.conf.local` | `~/.tmux.conf.local` |
 | `ranger/*` | `~/.config/ranger/` |
-| `ranger/{ranger,ranger-root}` | `~/.local/bin/` *(Linux, `ranger_docker` step; also builds `ranger/docker/Dockerfile`; mounted disks are per-host, see `case "$(hostname -s)"` in the scripts — currently p-ws-40)* |
+| `ranger/ranger-root` | `~/.local/bin/` *(Linux, `ranger_docker` step; also builds `ranger/docker/Dockerfile`; mounted disks are per-host, see `case "$(hostname -s)"` in the script — currently p-ws-40, p-ws-44)* |
 | `aerospace/aerospace.toml` | `~/.config/aerospace/aerospace.toml` |
 | `clang-format/clang-format-{ubuntu,macos}.yml` | `~/.clang-format` |
 | `gdb/gdbinit` | `~/.gdbinit` |

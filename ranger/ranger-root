@@ -9,6 +9,7 @@ WORKDIR="$(pwd)"
 # Disk layout is per server: add a case for each new host.
 case "$(hostname -s)" in
     p-ws-40) ROOTS=(/home /storage2 /storage3) ;;
+    p-ws-44) ROOTS=(/home /storage /storage3 /data) ;;  # /home -> /storage/home
     *)       ROOTS=(/home) ;;
 esac
 MOUNTS=()
