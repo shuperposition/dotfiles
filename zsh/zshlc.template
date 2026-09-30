@@ -1,6 +1,10 @@
-#################################
-# Specific Environment Settings #
-#################################
+############################
+# Server Specific Settings #
+############################
+
+###############################
+# Common Environment Settings #
+###############################
 
 # Exa settings
 # alias ls="exa"
@@ -42,10 +46,12 @@
 #         echo -e '\nListing /usr/local' &&
 #         ls /usr/local | grep cuda
 # }
+
 # Switch CUDA version (system update-alternative)
 # switch_cuda_auto() {
 #     sudo update-alternatives --config cuda
 # }
+
 # Switch CUDA version (manual symbolic-relink)
 # switch_cuda_manual() {
 #     if [ -z "$1" ]; then
@@ -62,6 +68,7 @@
 #     sudo ln -sfn "$cuda_path" /usr/local/cuda
 #     echo "Switched to CUDA $1"
 # }
+
 # Install CUDA version (apt managed)
 # install_cuda() {
 #     if [ -z "$1" ]; then
@@ -71,6 +78,7 @@
 #     fi
 #     sudo apt update && sudo apt install -y "cuda-$1" "cuda-toolkit-$1"
 # }
+
 # Include CUDA paths
 # export PATH="/usr/local/cuda/bin:$PATH"
 # export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
