@@ -6,6 +6,12 @@
 # export HF_HOME=/path/to/huggingface
 # export HF_HUB_DISABLE_TELEMETRY=1
 
+# Diffsynth-Studio
+# export MODELSCOPE_DOMAIN="www.modelscope.ai"
+# export MODELSCOPE_DOMAIN="www.modelscope.cn"
+# export DIFFSYNTH_DOWNLOAD_SOURCE="modelscope"
+# export DIFFSYNTH_MODEL_BASE_PATH="/path/to/modelscope"
+
 ###############################
 # Common Environment Settings #
 ###############################
