@@ -28,7 +28,7 @@ step_terminal_utilities() {
 step_desktop_applications() {
     run brew install --cask google-chrome firefox spotify vlc \
         iterm2 docker visual-studio-code notion drawio \
-        steam battle-net
+        steam battle-net claude
 }
 
 step_iterm2_colors() {
