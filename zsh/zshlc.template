@@ -2,6 +2,9 @@
 # Server Specific Settings #
 ############################
 
+# Custom cluster commands
+# [[ -d $HOME/bin && :$PATH: != *:$HOME/bin:* ]] && export PATH="$HOME/bin:$PATH"
+
 # Huggingface settings
 # export HF_HOME=/path/to/huggingface
 # export HF_HUB_DISABLE_TELEMETRY=1
