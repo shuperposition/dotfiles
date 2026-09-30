@@ -106,7 +106,7 @@ step_docker() {
     run sudo docker run --rm hello-world
 }
 
-# ranger/ranger-root wrappers that run ranger in a container on $PWD. Builds
+# ranger-root wrapper that runs ranger as root in a container on $PWD. Builds
 # the image only when missing, so re-runs do not rebuild it.
 step_ranger_docker() {
     if ! have docker; then
@@ -116,7 +116,6 @@ step_ranger_docker() {
     image="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
     docker image inspect "$image" > /dev/null 2>&1 ||
         run docker build -t "$image" "$DOTFILES/ranger/docker"
-    link "$DOTFILES/ranger/ranger" "$HOME/.local/bin/ranger"
     link "$DOTFILES/ranger/ranger-root" "$HOME/.local/bin/ranger-root"
 }
 
