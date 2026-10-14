@@ -78,6 +78,7 @@ step_gdu() {
         "$tmp/gdu.tgz"
     run tar -C "$tmp" -xzf "$tmp/gdu.tgz" "$asset"
     run install -m 755 "$tmp/$asset" "$HOME/.local/bin/gdu"
+    link "$DOTFILES/gdu/gdu.yaml" "$HOME/.gdu.yaml"
 }
 
 step_neovim() {
