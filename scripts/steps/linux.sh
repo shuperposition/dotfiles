@@ -6,6 +6,7 @@
 NERD_FONT_VERSION="v3.4.0"
 ANACONDA_VERSION="2026.07-1"
 LAZYGIT_VERSION="0.63.0"
+GDU_VERSION="5.38.0"
 GO_VERSION="go1.23.4"
 DRAWIO_VERSION="24.1.0"
 
@@ -63,6 +64,20 @@ step_lazygit() {
         "$tmp/lazygit.tar.gz"
     run tar -C "$tmp" -xzf "$tmp/lazygit.tar.gz" lazygit
     run install -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
+}
+
+step_gdu() {
+    # Disk usage browser (ncdu-like, parallel scan). ~/.local/bin, no sudo.
+    need_dir "$HOME/.local/bin"
+    case "$(arch_slug)" in
+        x86_64) asset=gdu_linux_amd64_static ;;
+        arm64) asset=gdu_linux_arm64 ;;
+    esac
+    tmp=$(mktempdir)
+    fetch "https://github.com/dundee/gdu/releases/download/v${GDU_VERSION}/${asset}.tgz" \
+        "$tmp/gdu.tgz"
+    run tar -C "$tmp" -xzf "$tmp/gdu.tgz" "$asset"
+    run install -m 755 "$tmp/$asset" "$HOME/.local/bin/gdu"
 }
 
 step_neovim() {
