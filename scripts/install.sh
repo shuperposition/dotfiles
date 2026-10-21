@@ -39,11 +39,11 @@ fi
 profile_steps() {
     case "$1" in
         linux-base)
-            echo "apt_update apt_general oh_my_zsh oh_my_tmux nerd_fonts gogh
+            echo "apt_update apt_general login_shell oh_my_zsh oh_my_tmux nerd_fonts gogh
                   ranger fzf lazygit nvm bun neovim claude_plugins"
             ;;
         linux-server)
-            echo "oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit nvm bun neovim
+            echo "login_shell oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit nvm bun neovim
                   anaconda conda_packages claude_plugins"
             ;;
         linux-desktop)

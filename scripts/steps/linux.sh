@@ -71,6 +71,64 @@ step_neovim() {
     install_neovim_tarball linux
 }
 
+# Hand SSH logins over to zsh (and from there to tmux, see zsh/zshrc).
+#
+# The usual answer, `chsh -s $(which zsh)`, is unavailable on the servers this
+# targets: chsh asks for the account password through PAM, and these accounts
+# have none (key-only login) and no sudo. So the login shell stays bash, and
+# bash is made to exec zsh instead.
+#
+# The hook goes in ~/.profile (or ~/.bash_profile, which bash prefers when it
+# exists), not ~/.bashrc:
+#   - ~/.profile is read by login shells only, i.e. exactly the shell sshd
+#     starts. ~/.bashrc is read by every interactive bash, so a hook there also
+#     hijacks a `bash` typed deliberately, subshells of editors, and so on.
+#   - The block is appended at the end, after the stock PATH setup, so
+#     ~/.local/bin (where zsh may live on a no-sudo box) is already searched.
+# The block only fires for an interactive shell: `ssh host cmd`, scp and rsync
+# get plain non-interactive bash and are not disturbed. If zsh is missing, or
+# exec fails, login simply continues in bash.
+#
+# Re-runs find the markers and do nothing. To undo, delete the marked block.
+step_login_shell() {
+    target="$HOME/.profile"
+    if [ -e "$HOME/.bash_profile" ]; then
+        target="$HOME/.bash_profile"
+    fi
+
+    if [ -f "$target" ] && grep -q '>>> dotfiles login shell >>>' "$target"; then
+        info "login-shell hook already present in $target"
+    else
+        tmp=$(mktempdir)
+        cat > "$tmp/block" << 'EOF'
+
+# >>> dotfiles login shell >>>
+# Managed by dotfiles/scripts (step_login_shell). Interactive login shells
+# become zsh; chsh is not available without a password.
+case $- in
+    *i*)
+        if [ -z "${ZSH_VERSION:-}" ] && command -v zsh > /dev/null 2>&1; then
+            SHELL=$(command -v zsh)
+            export SHELL
+            exec zsh -l
+        fi
+        ;;
+esac
+# <<< dotfiles login shell <<<
+EOF
+        run bash -c 'cat "$1" >> "$2"' _ "$tmp/block" "$target"
+        [ "$DRY_RUN" = 1 ] || info "added login-shell hook to $target"
+    fi
+
+    # Older setups put an unconditional `exec zsh -l` in ~/.bashrc. It is
+    # harmless next to the hook above (ZSH_VERSION guards the second exec), but
+    # it keeps hijacking non-login interactive bash. It is a hand-edited file,
+    # so say so rather than rewrite it.
+    if [ -f "$HOME/.bashrc" ] && grep -q 'exec zsh' "$HOME/.bashrc"; then
+        warn "~/.bashrc also execs zsh; remove that block to let non-login bash stay bash"
+    fi
+}
+
 # --- conda ------------------------------------------------------------------
 
 step_anaconda() {
