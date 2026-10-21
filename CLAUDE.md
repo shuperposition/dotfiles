@@ -59,6 +59,21 @@ must never hold per-machine values. It sources `~/.zshlc` last; that file is
 seeded once from `zsh/zshlc.template`, gitignored, and never overwritten.
 Anything host-specific (dataset paths, CUDA helpers, endpoints) belongs there.
 
+## Servers: no sudo, no password
+
+The `linux-server` profile targets accounts with key-only login and no sudo, so
+steps in it must not call `sudo` (install under `$HOME`/`~/.local/bin`, as
+`step_lazygit` and `step_gdu` do), and `chsh` is not an option. The login shell
+stays bash and `step_login_shell` makes it hand over: it appends a marked
+`exec zsh -l` block to `~/.profile` (or `~/.bash_profile`, which bash prefers
+when present), interactive login shells only, so `ssh host cmd`/scp/rsync stay
+plain bash. The hook is deliberately not in `~/.bashrc`, which every
+interactive bash reads. tmux is then started from the top of `zsh/zshrc`
+(guarded on interactive, `$TMUX` unset and tmux installed, so a broken tmux
+cannot lock you out). Because zsh is `exec`'d, leaving tmux ends the SSH
+session. Never source `~/.profile` from a step: it would `exec` and kill the
+install.
+
 ## Shell startup budget
 
 `zsh/zshrc` is deliberately ~50ms. Three things carry that and are easy to
@@ -105,3 +120,8 @@ registration. LSP server settings go in `nvim/after/lsp/<server>.lua`. Commit
 `kernel/`, `networks/`, `pyenv/`, `ssh/`, `vnc/`, `mutter/`, `tilingshell/`,
 `docker/`, `std/`, `users/` are runbooks kept beside the config they describe,
 not things the installer consumes. Editing them changes nothing on disk.
+
+Tools like bun's or conda's installers append to `~/.zshrc`, which here is a
+symlink into the repo. If `git diff zsh/zshrc` shows such an append (usually
+with a hardcoded `/home/<user>` path), revert it: `zshrc` already has portable
+blocks for them.
