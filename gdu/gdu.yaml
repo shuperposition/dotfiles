@@ -1,0 +1,20 @@
+# gdu colours. Named ANSI colours (not #hex) so they come from the terminal
+# palette (Gogh gruvbox), like htop's default scheme and lazygit.
+style:
+    header:
+        text-color: black
+        background-color: cyan
+    footer:
+        text-color: black
+        background-color: cyan
+        number-color: black
+    selected-row:
+        text-color: black
+        background-color: blue
+    marked:
+        text-color: black
+        background-color: yellow
+    result-row:
+        number-color: yellow
+        directory-color: blue
+    show-bar-percentage: true
