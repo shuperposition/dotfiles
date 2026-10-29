@@ -27,9 +27,15 @@ step_terminal_utilities() {
 }
 
 step_desktop_applications() {
-    run brew install --cask google-chrome firefox spotify vlc \
+    # One cask at a time: brew refuses a cask whose app was installed by hand
+    # ("already an App at ..."), and in a single call that one refusal fails
+    # the whole step.
+    local cask
+    for cask in google-chrome firefox spotify vlc \
         iterm2 docker visual-studio-code notion drawio \
-        steam battle-net claude
+        steam battle-net claude; do
+        run brew install --cask "$cask" || warn "cask $cask not installed (already in /Applications?)"
+    done
 }
 
 step_iterm2_colors() {
