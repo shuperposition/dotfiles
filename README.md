@@ -29,7 +29,7 @@ scratch directory that is removed on exit.
 | --- | --- |
 | `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node, claude plugins |
 | `linux-server` | A server account: shell, tools, conda and claude plugins, no desktop packages |
-| `linux-desktop` | Desktop extras: zsh as login shell (`sudo chsh`), docker, NVIDIA container toolkit, anaconda, language toolchains, Claude desktop, apps |
+| `linux-desktop` | Desktop extras: zsh as login shell (`sudo chsh`), fcitx5 (Japanese, Chinese), docker, NVIDIA container toolkit, anaconda, language toolchains, Claude desktop, apps |
 | `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, claude plugins |
 
 The NVIDIA driver is optional and in no profile, because it switches to
@@ -113,6 +113,7 @@ Marketplaces`.
 | `tmux/tmux.conf.local` | `~/.tmux.conf.local` |
 | `ranger/*` | `~/.config/ranger/` |
 | `ranger/ranger-root` | `~/.local/bin/` *(Linux, `ranger_docker` step; also builds `ranger/docker/Dockerfile`; mounted disks are per-host, see `case "$(hostname -s)"` in the script — currently p-ws-40, p-ws-44)* |
+| `fcitx5/profile` | `~/.config/fcitx5/profile` *(Linux desktop, copied once: fcitx5 rewrites it)* |
 | `aerospace/aerospace.toml` | `~/.config/aerospace/aerospace.toml` |
 | `clang-format/clang-format-{ubuntu,macos}.yml` | `~/.clang-format` |
 | `gdb/gdbinit` | `~/.gdbinit` |

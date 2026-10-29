@@ -26,7 +26,6 @@ step_apt_general() {
     # Shell lint/format, used by the repo checks and by nvim (bashls, conform).
     run sudo apt install -y shellcheck shfmt
     run sudo apt install -y net-tools nmap
-    run sudo apt install -y fcitx5 fcitx5-chewing fcitx5-mozc fcitx5-pinyin
     # Ubuntu ships bat as batcat because of a name clash. ranger's scope.sh
     # calls `bat`, and it does not see zshrc's alias.
     if [ -e /usr/bin/batcat ]; then
@@ -213,6 +212,23 @@ step_desktop_general() {
     run sudo apt install -y vlc chromium-browser \
         gnome-shell-extension-manager chrome-gnome-shell
     info 'open "Extension Manager" and search for "Tiling Shell"'
+}
+
+# fcitx5 with Japanese (mozc) and Chinese (chewing, pinyin), replacing IBus.
+# im-config only writes ~/.xinputrc; the switch takes effect at next login.
+# fcitx5 rewrites its profile when you change input methods in its settings,
+# so it is seeded once rather than linked.
+step_input_method() {
+    run sudo apt install -y fcitx5 fcitx5-config-qt fcitx5-frontend-all \
+        fcitx5-mozc fcitx5-chewing fcitx5-pinyin
+    if [ -f "$HOME/.xinputrc" ] && grep -q 'run_im fcitx5' "$HOME/.xinputrc"; then
+        info "input method is already fcitx5"
+    else
+        run im-config -n fcitx5
+        [ "$DRY_RUN" = 1 ] || info "input method set to fcitx5; log out and back in"
+    fi
+    need_dir "$HOME/.config/fcitx5"
+    copy_if_absent "$DOTFILES/fcitx5/profile" "$HOME/.config/fcitx5/profile"
 }
 
 step_docker() {

@@ -50,7 +50,7 @@ profile_steps() {
             # nvidia_driver is deliberately not here: it installs whatever
             # ubuntu-drivers recommends, which can replace a working driver.
             # Run it by name when that is actually wanted.
-            echo "default_shell desktop_general docker nvidia_container_toolkit
+            echo "default_shell desktop_general input_method docker nvidia_container_toolkit
                   anaconda python cpp java gvm tfenv claude_desktop spotify screenkey"
             ;;
         macos)
