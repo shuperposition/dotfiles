@@ -54,9 +54,11 @@ step_oh_my_zsh() {
     if [ -d "$omz" ]; then
         info "oh-my-zsh already present at $omz"
     else
-        run sh -c \
-            "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
-            "" --unattended
+        # Fetched to a file rather than `sh -c "$(curl ...)"`: the command
+        # substitution would run even under --dry-run.
+        tmp=$(mktempdir)
+        fetch https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh "$tmp/omz-install.sh"
+        run sh "$tmp/omz-install.sh" --unattended
     fi
 
     clone_or_pull https://github.com/zsh-users/zsh-autosuggestions.git "$custom/plugins/zsh-autosuggestions"

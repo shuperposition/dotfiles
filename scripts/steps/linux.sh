@@ -7,6 +7,7 @@ NERD_FONT_VERSION="v3.4.0"
 ANACONDA_VERSION="2026.07-1"
 LAZYGIT_VERSION="0.63.0"
 GDU_VERSION="5.38.0"
+STYLUA_VERSION="2.6.0"
 GO_VERSION="go1.23.4"
 DRAWIO_VERSION="24.1.0"
 
@@ -22,6 +23,8 @@ step_apt_general() {
     run sudo apt install -y zsh tmux vim ranger ripgrep xsel xclip \
         git wget curl tree eza bat jq build-essential \
         htop nvtop glances neofetch trash-cli
+    # Shell lint/format, used by the repo checks and by nvim (bashls, conform).
+    run sudo apt install -y shellcheck shfmt
     run sudo apt install -y net-tools nmap
     run sudo apt install -y fcitx5 fcitx5-chewing fcitx5-mozc fcitx5-pinyin
     # Ubuntu ships bat as batcat because of a name clash. ranger's scope.sh
@@ -64,6 +67,22 @@ step_lazygit() {
         "$tmp/lazygit.tar.gz"
     run tar -C "$tmp" -xzf "$tmp/lazygit.tar.gz" lazygit
     run install -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
+}
+
+step_stylua() {
+    # Lua formatter, for `stylua --check nvim/` and conform's format-on-save
+    # (Mason is deliberately not asked for it). Not in apt; the musl build is
+    # static. ~/.local/bin, no sudo.
+    need_dir "$HOME/.local/bin"
+    case "$(arch_slug)" in
+        x86_64) asset=stylua-linux-x86_64-musl ;;
+        arm64) asset=stylua-linux-aarch64-musl ;;
+    esac
+    tmp=$(mktempdir)
+    fetch "https://github.com/JohnnyMorganz/StyLua/releases/download/v${STYLUA_VERSION}/${asset}.zip" \
+        "$tmp/stylua.zip"
+    run unzip -o "$tmp/stylua.zip" stylua -d "$tmp"
+    run install -m 755 "$tmp/stylua" "$HOME/.local/bin/stylua"
 }
 
 step_gdu() {
@@ -145,6 +164,29 @@ EOF
     fi
 }
 
+# Make zsh the account's real login shell, on machines with sudo (desktops).
+#
+# login_shell above only catches interactive *login* shells, and GNOME Terminal
+# starts non-login ones, so on a desktop terminals would stay bash. With sudo,
+# chsh works; `sudo chsh` asks for the sudo password instead of going through
+# chsh's own PAM prompt. Not for linux-server: no sudo there.
+step_default_shell() {
+    if ! have zsh; then
+        warn "zsh not found, skipping (run apt_general first)"
+        return 0
+    fi
+    zsh_path=$(command -v zsh)
+    current=$(getent passwd "$USER" | cut -d: -f7)
+    if [ "$current" = "$zsh_path" ]; then
+        info "login shell is already $zsh_path"
+        return 0
+    fi
+    grep -qx "$zsh_path" /etc/shells ||
+        run sudo sh -c 'echo "$1" >> /etc/shells' _ "$zsh_path"
+    run sudo chsh -s "$zsh_path" "$USER"
+    [ "$DRY_RUN" = 1 ] || info "login shell changed to $zsh_path; log out and back in"
+}
+
 # --- conda ------------------------------------------------------------------
 
 step_anaconda() {
@@ -193,6 +235,8 @@ step_ranger_docker() {
     link "$DOTFILES/ranger/ranger-root" "$HOME/.local/bin/ranger-root"
 }
 
+# Optional: in no profile. It switches to the recommended driver (often a newer
+# -open variant), so only run it by name when you mean to change drivers.
 step_nvidia_driver() {
     driver=$(ubuntu-drivers devices | awk '/recommended/ {print $3}')
     [ -n "$driver" ] || die "no recommended NVIDIA driver found"

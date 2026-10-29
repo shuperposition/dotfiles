@@ -25,7 +25,8 @@ step_essentials() {
 step_terminal_utilities() {
     run brew install zsh tmux vim ranger \
         git lazygit wget curl tree eza bat jq \
-        htop glances watch trash-cli
+        htop glances watch trash-cli \
+        shellcheck shfmt stylua
 }
 
 step_desktop_applications() {

@@ -40,14 +40,17 @@ profile_steps() {
     case "$1" in
         linux-base)
             echo "apt_update apt_general login_shell oh_my_zsh oh_my_tmux nerd_fonts gogh
-                  ranger fzf lazygit gdu nvm bun neovim claude_plugins"
+                  ranger fzf lazygit gdu stylua nvm bun neovim claude_plugins"
             ;;
         linux-server)
             echo "login_shell oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit gdu nvm bun neovim
                   anaconda conda_packages claude_plugins"
             ;;
         linux-desktop)
-            echo "desktop_general docker nvidia_driver nvidia_container_toolkit
+            # nvidia_driver is deliberately not here: it installs whatever
+            # ubuntu-drivers recommends, which can replace a working driver.
+            # Run it by name when that is actually wanted.
+            echo "default_shell desktop_general docker nvidia_container_toolkit
                   anaconda python cpp java gvm tfenv spotify screenkey"
             ;;
         macos)

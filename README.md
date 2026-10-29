@@ -29,8 +29,12 @@ scratch directory that is removed on exit.
 | --- | --- |
 | `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node, claude plugins |
 | `linux-server` | A server account: shell, tools, conda and claude plugins, no desktop packages |
-| `linux-desktop` | Desktop extras: docker, NVIDIA, anaconda, language toolchains, apps |
+| `linux-desktop` | Desktop extras: zsh as login shell (`sudo chsh`), docker, NVIDIA container toolkit, anaconda, language toolchains, apps |
 | `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, claude plugins |
+
+The NVIDIA driver is optional and in no profile, because it switches to
+whatever `ubuntu-drivers` recommends. Run it by name when you want that:
+`./scripts/install.sh nvidia_driver`.
 
 ### Layout
 
@@ -55,7 +59,7 @@ of the step files:
 | Where | Pins |
 | --- | --- |
 | `scripts/steps/shared.sh` | `NEOVIM_VERSION`, `NODE_VERSION`, `NVM_VERSION` |
-| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `LAZYGIT_VERSION`, `ANACONDA_VERSION`, `GO_VERSION`, `DRAWIO_VERSION` |
+| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `LAZYGIT_VERSION`, `GDU_VERSION`, `STYLUA_VERSION`, `ANACONDA_VERSION`, `GO_VERSION`, `DRAWIO_VERSION` |
 
 Neovim is the one that matters most. `NEOVIM_VERSION` is held at 0.11.x on all
 three platforms because nvim-treesitter's `master` branch breaks on 0.12 — the

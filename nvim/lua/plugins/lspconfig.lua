@@ -30,9 +30,8 @@ return {
           "lua-language-server", -- A language server for Lua
           "basedpyright", -- A language server for Python
           "bash-language-server", -- A language server for Bash
-          -- Formatters, Linters
-          "stylua", -- A formatter for Lua
-          "shfmt", -- A formatter for Bash
+          -- Formatters, Linters (stylua, shfmt, shellcheck come from the
+          -- installer on PATH, so nvim and the CLI checks share one version)
           "black", -- A formatter for Python code
           "isort", -- A formatter for Python imports
           "ruff", -- A formatter & linter for Python
