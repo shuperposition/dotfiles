@@ -29,7 +29,7 @@ scratch directory that is removed on exit.
 | --- | --- |
 | `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node, claude plugins |
 | `linux-server` | A server account: shell, tools, conda and claude plugins, no desktop packages |
-| `linux-desktop` | Desktop extras: zsh as login shell (`sudo chsh`), docker, NVIDIA container toolkit, anaconda, language toolchains, apps |
+| `linux-desktop` | Desktop extras: zsh as login shell (`sudo chsh`), docker, NVIDIA container toolkit, anaconda, language toolchains, Claude desktop, apps |
 | `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, claude plugins |
 
 The NVIDIA driver is optional and in no profile, because it switches to

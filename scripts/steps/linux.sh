@@ -306,6 +306,43 @@ step_tfenv() {
 
 # --- desktop applications ---------------------------------------------------
 
+# Claude desktop app (Linux beta), from Anthropic's apt repository so updates
+# arrive with apt upgrade: https://code.claude.com/docs/en/desktop-linux
+# The key is checked against the documented fingerprint before apt trusts it;
+# a temporary GNUPGHOME keeps the check from creating ~/.gnupg.
+CLAUDE_DESKTOP_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
+
+step_claude_desktop() {
+    keyring=/usr/share/keyrings/claude-desktop-archive-keyring.asc
+    list=/etc/apt/sources.list.d/claude-desktop.list
+    if [ -f "$keyring" ]; then
+        info "signing key already at $keyring"
+    else
+        tmp=$(mktempdir)
+        fetch https://downloads.claude.ai/claude-desktop/key.asc "$tmp/key.asc"
+        if [ "$DRY_RUN" != 1 ]; then
+            fpr=$(GNUPGHOME="$tmp" gpg --show-keys --with-colons "$tmp/key.asc" |
+                awk -F: '/^fpr/ {print $10; exit}') || fpr=""
+            [ "$fpr" = "$CLAUDE_DESKTOP_KEY_FPR" ] ||
+                die "claude-desktop key fingerprint is '$fpr', expected $CLAUDE_DESKTOP_KEY_FPR"
+        fi
+        run sudo install -m 644 "$tmp/key.asc" "$keyring"
+    fi
+    if [ ! -f "$list" ]; then
+        run bash -c 'echo "deb [arch=amd64,arm64 signed-by=$1] https://downloads.claude.ai/claude-desktop/apt/stable stable main" |
+            sudo tee "$2" > /dev/null' _ "$keyring" "$list"
+    fi
+    run sudo apt update
+    run sudo apt install -y claude-desktop
+
+    # Cowork runs tasks in a QEMU/KVM VM and needs /dev/vhost-vsock, which
+    # only the kvm group can open. Takes effect at the next login.
+    if ! id -nG "$USER" | tr ' ' '\n' | grep -qx kvm; then
+        run sudo usermod -aG kvm "$USER"
+        [ "$DRY_RUN" = 1 ] || info "added $USER to kvm (for Cowork); log out and back in"
+    fi
+}
+
 step_spotify() { run sudo snap install spotify; }
 step_screenkey() { run sudo apt install -y screenkey; }
 
