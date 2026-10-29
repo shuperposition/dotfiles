@@ -11,6 +11,9 @@
 # current OS are loaded, so --list always shows what can actually be run here.
 # Every step is safe to re-run.
 
+# Resolve the `source=` paths below against this file, not the working directory.
+# shellcheck source-path=SCRIPTDIR
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,28 +38,35 @@ fi
 # --- profiles ---------------------------------------------------------------
 # Named step sets. A case statement rather than an associative array, so this still
 # works on the bash 3.2 that macOS ships.
+#
+# linux-base is the terminal environment, installed entirely under $HOME with
+# no sudo. linux-server and linux-desktop both build on it: a server adds what
+# a shared GPU box needs, a desktop wraps it in the system packages it relies
+# on (apt, before) and the GUI and sudo-only extras (after).
 
 profile_steps() {
     case "$1" in
         linux-base)
-            echo "apt_update apt_general login_shell oh_my_zsh oh_my_tmux nerd_fonts gogh
-                  ranger fzf lazygit gdu stylua nvm bun neovim claude_plugins"
+            echo "prerequisites login_shell oh_my_zsh oh_my_tmux fzf lazygit gdu stylua
+                  neovim nvm bun anaconda conda_packages python ranger
+                  claude_code claude_plugins"
             ;;
         linux-server)
-            echo "login_shell oh_my_zsh oh_my_tmux ranger ranger_docker fzf lazygit gdu nvm bun neovim
-                  anaconda conda_packages claude_plugins"
+            echo "$(profile_steps linux-base) ranger_docker"
             ;;
         linux-desktop)
             # nvidia_driver is deliberately not here: it installs whatever
             # ubuntu-drivers recommends, which can replace a working driver.
             # Run it by name when that is actually wanted.
-            echo "default_shell desktop_general input_method docker nvidia_container_toolkit
-                  anaconda python cpp java gvm tfenv claude_desktop spotify screenkey"
+            echo "apt_update apt_general default_shell
+                  $(profile_steps linux-base)
+                  nerd_fonts gogh desktop_general tiling_shell input_method docker nvidia_container_toolkit
+                  cpp java gvm tfenv claude_desktop spotify screenkey"
             ;;
         macos)
             echo "essentials terminal_utilities desktop_applications
                   iterm2_colors oh_my_zsh oh_my_tmux ranger fzf nvm bun neovim
-                  anaconda aerospace python cpp gvm claude_plugins"
+                  anaconda aerospace python cpp gvm claude_code claude_plugins"
             ;;
         *) return 1 ;;
     esac
@@ -114,14 +124,31 @@ list_all() {
 
 run_step() {
     name=$1
+    CURRENT_STEP=$name
     printf '\n >>> %s\n' "$name"
     "step_$name"
     printf ' <<< %s\n' "$name"
+    CURRENT_STEP=""
+}
+
+# Under `set -e` a failing command ends the run wherever it happens, and the
+# steps after it silently never run. Say which step it was, and how to resume.
+CURRENT_STEP=""
+on_exit() {
+    status=$?
+    if [ "$status" != 0 ] && [ -n "$CURRENT_STEP" ]; then
+        rest=$(echo "$STEPS" | sed -n "/^$CURRENT_STEP\$/,\$p" | tr '\n' ' ')
+        printf '\n !!! step %s failed (exit %s); the remaining steps did not run.\n' \
+            "$CURRENT_STEP" "$status" >&2
+        printf '     fix it, then resume with: %s %s\n' "$0" "$rest" >&2
+    fi
+    cleanup_scratch
 }
 
 # --- argument parsing -------------------------------------------------------
 
 STEPS=""
+PROFILES=""
 if [ $# -eq 0 ]; then
     usage
     exit 0
@@ -147,6 +174,7 @@ while [ $# -gt 0 ]; do
             [ "$(profile_platform "$2")" = "$PLATFORM" ] ||
                 die "profile '$2' cannot run on $PLATFORM"
             STEPS="$STEPS $want"
+            PROFILES="$PROFILES $2"
             shift
             ;;
         -*) die "unknown option: $1" ;;
@@ -158,9 +186,20 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# Normalise whitespace from the heredoc-style profile definitions.
-STEPS=$(echo "$STEPS" | tr -s '[:space:]' '\n' | sed '/^$/d')
+# Normalise whitespace from the heredoc-style profile definitions, and run each
+# step once even when profiles overlap (linux-base is inside the other two).
+STEPS=$(echo "$STEPS" | tr -s '[:space:]' '\n' | sed '/^$/d' | awk '!seen[$0]++')
 [ -n "$STEPS" ] || die "nothing to do (try --list)"
+
+# linux-base and linux-server target accounts without sudo. Enforce it, so a
+# step that grows a `sudo` fails loudly (under --dry-run too) instead of
+# stopping at a password prompt on a server. linux-desktop lifts it.
+case " $PROFILES " in
+    *" linux-desktop "*) NO_SUDO=0 ;;
+    *" linux-base "* | *" linux-server "*) NO_SUDO=1 ;;
+    *) NO_SUDO=0 ;;
+esac
+export NO_SUDO
 
 # Validate everything up front, so a typo in a long profile fails immediately
 # rather than half way through an install.
@@ -173,6 +212,14 @@ if [ "$DRY_RUN" = 1 ]; then
 fi
 info "repo:  $DOTFILES"
 info "steps: $(echo "$STEPS" | tr '\n' ' ')"
+
+trap on_exit EXIT
+
+# Ask for the password once, up front, rather than at whichever step first
+# needs it -- possibly after a long unattended download.
+case " $PROFILES " in
+    *" linux-desktop "*) [ "$DRY_RUN" = 1 ] || sudo -v ;;
+esac
 
 for s in $STEPS; do
     run_step "$s"

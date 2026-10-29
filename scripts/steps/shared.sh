@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 #
-# Steps that are identical on Linux and macOS.
+# Steps shared by Linux and macOS. Where only the package manager differs
+# (nvm, gvm) the step branches on is_macos rather than being split in two.
 #
 # Each step is a `step_<name>` function; install.sh prints the banner around it.
 
 # Pinned versions, collected here so they are easy to find and bump.
-NODE_VERSION="v20.19.6"
+# Node 20 reached end of life in April 2026; 24 is the maintained LTS line.
+NODE_VERSION="v24.22.2"
 # Linux only. macOS installs nvm from Homebrew, which has no versioned formula,
 # so nvm itself rolls forward there; pinning it would mean maintaining a private
 # tap. NODE_VERSION is the one that has to be reproducible, and step_nvm pins
 # that on both platforms.
-NVM_VERSION="v0.40.3"
+NVM_VERSION="v0.40.8"
+BUN_VERSION="1.4.4"
+GO_VERSION="go1.27.3"
 
 # nvim-treesitter's master branch does not support Neovim 0.12: its query
 # directives index match[capture_id] as a single node, but 0.12 removed the
@@ -51,6 +55,11 @@ step_oh_my_zsh() {
     omz="$HOME/.oh-my-zsh"
     custom="${ZSH_CUSTOM:-$omz/custom}"
 
+    # Linked before the oh-my-zsh installer runs: on a fresh machine it would
+    # otherwise write its template ~/.zshrc, and `link` refuses to clobber a
+    # real file. --keep-zshrc then makes the installer leave the symlink alone.
+    link "$DOTFILES/zsh/zshrc" "$HOME/.zshrc"
+
     if [ -d "$omz" ]; then
         info "oh-my-zsh already present at $omz"
     else
@@ -58,7 +67,7 @@ step_oh_my_zsh() {
         # substitution would run even under --dry-run.
         tmp=$(mktempdir)
         fetch https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh "$tmp/omz-install.sh"
-        run sh "$tmp/omz-install.sh" --unattended
+        run sh "$tmp/omz-install.sh" --unattended --keep-zshrc
     fi
 
     clone_or_pull https://github.com/zsh-users/zsh-autosuggestions.git "$custom/plugins/zsh-autosuggestions"
@@ -73,8 +82,6 @@ step_oh_my_zsh() {
     # every shell start. These are our own directories, so fix the modes rather
     # than teach the shell to ignore them.
     run find "$omz" "$custom" -type d -exec chmod g-w,o-w {} +
-
-    link "$DOTFILES/zsh/zshrc" "$HOME/.zshrc"
 
     # Read before /etc/zsh/zshrc, which is the only window in which that file's
     # bare compinit can be headed off. See the comments in zsh/zshenv.
@@ -165,14 +172,42 @@ step_nvm() {
 
 # claude-mem's hooks run under bun. SHELL=sh stops the upstream installer from
 # appending to ~/.zshrc (a symlink into this repo); the ~/.local/bin link puts
-# bun on PATH for hooks, as step_nvm does for node.
+# bun on PATH for hooks, as step_nvm does for node. Re-installs only when the
+# installed version is not BUN_VERSION.
 step_bun() {
-    if [ -x "$HOME/.bun/bin/bun" ]; then
-        info "bun already installed at ~/.bun"
+    if [ "$("$HOME/.bun/bin/bun" --version 2> /dev/null)" = "$BUN_VERSION" ]; then
+        info "bun $BUN_VERSION already installed at ~/.bun"
     else
-        run env SHELL=sh bash -c "curl -fsSL https://bun.sh/install | bash"
+        run env SHELL=sh bash -c \
+            "curl -fsSL https://bun.sh/install | bash -s bun-v$BUN_VERSION"
     fi
     link "$HOME/.bun/bin/bun" "$HOME/.local/bin/bun"
+}
+
+# Go through gvm, at GO_VERSION on both platforms (bison is a gvm dependency).
+# -B installs the binary release, so no Go is needed to bootstrap.
+# GVM_NO_UPDATE_PROFILE stops the installer editing ~/.zshrc, a symlink into
+# this repo; zsh/zshrc sources gvm itself.
+step_gvm() {
+    if is_macos; then
+        run brew install bison mercurial
+    else
+        run sudo apt install -y bison
+    fi
+    if [ -d "$HOME/.gvm" ]; then
+        info "gvm already installed at ~/.gvm"
+    else
+        run bash -c \
+            'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | GVM_NO_UPDATE_PROFILE=1 bash'
+    fi
+    if [ "$DRY_RUN" = 1 ]; then
+        info "[dry-run] gvm install $GO_VERSION -B && gvm use $GO_VERSION --default"
+        return 0
+    fi
+    # shellcheck disable=SC1091
+    . "$HOME/.gvm/scripts/gvm"
+    gvm install "$GO_VERSION" -B
+    gvm use "$GO_VERSION" --default
 }
 
 step_python() {
@@ -191,6 +226,20 @@ step_ssh_config() {
 }
 
 # --- claude code ------------------------------------------------------------
+
+# The Claude Code CLI, from the native installer, into ~/.local/bin with no
+# sudo. Not pinned: it updates itself in the background, so it is installed
+# once and then left alone. `claude install` sets up "shell integration"; with
+# ~/.local/bin already on PATH and SHELL=sh (as for bun) it has no reason to
+# edit ~/.zshrc, which is a symlink into this repo.
+step_claude_code() {
+    if have claude || [ -x "$HOME/.local/bin/claude" ]; then
+        info "claude already installed"
+        return 0
+    fi
+    run env SHELL=sh PATH="$HOME/.local/bin:$PATH" bash -c \
+        'curl -fsSL https://claude.ai/install.sh | bash'
+}
 
 # Plugins to install, as `<plugin>@<marketplace> <github repo>`.
 #

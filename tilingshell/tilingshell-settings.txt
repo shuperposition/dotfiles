@@ -18,7 +18,6 @@ move-window-right=['<Shift><Alt>l']
 move-window-up=['<Shift><Alt>k']
 outer-gaps=uint32 9
 quarter-tiling-threshold=uint32 50
-selected-layouts=[['3249938'], ['3249938']]
 tiling-system-activation-key=['1']
 window-border-width=uint32 1
 window-use-custom-border-color=true

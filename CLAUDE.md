@@ -15,9 +15,9 @@ There is no build, no package manager and no test suite. The checks are:
 ./scripts/install.sh --list                     # steps + profiles for this OS
 ./scripts/install.sh --dry-run --profile macos  # verify a change without touching the system
 ./scripts/install.sh --dry-run <step>           # verify one step
-shellcheck scripts/install.sh scripts/lib/*.sh scripts/steps/*.sh
-shfmt -d scripts/                               # 4-space indent, indented case bodies
-stylua --check nvim/                            # config in stylua/stylua.toml
+shellcheck -x scripts/install.sh scripts/lib/*.sh scripts/steps/*.sh
+shfmt -i 4 -ci -sr -d scripts/                  # 4-space indent, indented case bodies
+stylua --search-parent-directories --check nvim/  # finds ~/.config/stylua -> stylua/
 for i in 1 2 3; do /usr/bin/time -f %e zsh -i -c exit; done   # shell startup cost
 ```
 
@@ -59,15 +59,24 @@ must never hold per-machine values. It sources `~/.zshlc` last; that file is
 seeded once from `zsh/zshlc.template`, gitignored, and never overwritten.
 Anything host-specific (dataset paths, CUDA helpers, endpoints) belongs there.
 
+## Profiles: base without sudo, desktop with it
+
+`linux-base` is the terminal environment and needs no sudo; `linux-server` and
+`linux-desktop` both include it (`profile_steps` calls itself; duplicates are
+dropped, first occurrence wins). `linux-desktop` puts `apt_update apt_general
+default_shell` before it and the GUI/sudo steps after it. A new step belongs in
+base only if it installs under `$HOME` (as `step_lazygit` and `step_gdu` do, or
+into conda base via `conda_packages`); otherwise it goes in desktop.
+
 ## Servers: no sudo, no password
 
-The `linux-server` profile targets accounts with key-only login and no sudo, so
-steps in it must not call `sudo` (install under `$HOME`/`~/.local/bin`, as
-`step_lazygit` and `step_gdu` do), and `chsh` is not an option. The login shell
-stays bash and `step_login_shell` makes it hand over: it appends a marked
-`exec zsh -l` block to `~/.profile` (or `~/.bash_profile`, which bash prefers
-when present), interactive login shells only, so `ssh host cmd`/scp/rsync stay
-plain bash. The hook is deliberately not in `~/.bashrc`, which every
+`linux-base` and `linux-server` target accounts with key-only login and no
+sudo. This is enforced: install.sh sets `NO_SUDO=1` for them and `run sudo …`
+dies (a `sudo` hidden inside `bash -c` is not caught). `chsh` is not an option.
+The login shell stays bash and `step_login_shell` makes it hand over: it
+appends a marked `exec zsh -l` block to `~/.profile` (or `~/.bash_profile`,
+which bash prefers when present), interactive login shells only, so `ssh host
+cmd`/scp/rsync stay plain bash. The hook is deliberately not in `~/.bashrc`, which every
 interactive bash reads. tmux is then started from the top of `zsh/zshrc`
 (guarded on interactive, `$TMUX` unset and tmux installed, so a broken tmux
 cannot lock you out). Because zsh is `exec`'d, leaving tmux ends the SSH
@@ -117,7 +126,7 @@ registration. LSP server settings go in `nvim/after/lsp/<server>.lua`. Commit
 
 ## Documentation-only directories
 
-`kernel/`, `networks/`, `pyenv/`, `ssh/`, `vnc/`, `mutter/`, `tilingshell/`,
+`kernel/`, `networks/`, `pyenv/`, `ssh/`, `vnc/`, `mutter/`,
 `docker/`, `std/`, `users/` are runbooks kept beside the config they describe,
 not things the installer consumes. Editing them changes nothing on disk.
 

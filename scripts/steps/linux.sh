@@ -1,116 +1,40 @@
 #!/usr/bin/env bash
 #
-# Linux (Ubuntu/Debian) install steps.
+# Linux (Ubuntu/Debian) install steps, grouped by the profile that uses them.
 
 # Pinned versions, collected here so they are easy to find and bump.
-NERD_FONT_VERSION="v3.4.0"
+NERD_FONT_VERSION="v3.5.1"
 ANACONDA_VERSION="2026.07-1"
-LAZYGIT_VERSION="0.63.0"
+LAZYGIT_VERSION="0.66.2"
 GDU_VERSION="5.38.0"
 STYLUA_VERSION="2.6.0"
-GO_VERSION="go1.23.4"
-DRAWIO_VERSION="24.1.0"
+DRAWIO_VERSION="32.6.1"
 
-# --- base -------------------------------------------------------------------
+# --- linux-base: terminal environment, no sudo -------------------------------
 
-step_apt_update() {
-    run sudo apt update
-    run sudo apt upgrade -y
-    run sudo apt autoremove -y
-}
-
-step_apt_general() {
-    run sudo apt install -y zsh tmux vim ranger ripgrep xsel xclip \
-        git wget curl tree eza bat jq build-essential \
-        htop nvtop glances neofetch trash-cli
-    # Shell lint/format, used by the repo checks and by nvim (bashls, conform).
-    run sudo apt install -y shellcheck shfmt
-    run sudo apt install -y net-tools nmap
-    # Ubuntu ships bat as batcat because of a name clash. ranger's scope.sh
-    # calls `bat`, and it does not see zshrc's alias.
-    if [ -e /usr/bin/batcat ]; then
-        link /usr/bin/batcat "$HOME/.local/bin/bat"
+# What a no-sudo account has to be given by its admin: linux-base installs
+# everything else under $HOME, but cannot install these. On a desktop,
+# apt_general (earlier in linux-desktop) provides them.
+step_prerequisites() {
+    missing=""
+    for c in zsh tmux git curl tar unzip; do
+        have "$c" || missing="$missing $c"
+    done
+    [ -z "$missing" ] && return 0
+    # A dry run of linux-desktop on a fresh machine never ran apt_general.
+    if [ "$DRY_RUN" = 1 ]; then
+        warn "missing:$missing (fine if apt_general runs first)"
+        return 0
     fi
-}
-
-step_nerd_fonts() {
-    need_dir "$HOME/.local/share/fonts/NerdFonts"
-    tmp=$(mktempdir)
-    fetch "https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_FONT_VERSION/Hack.zip" \
-        "$tmp/Hack.zip"
-    run unzip -o "$tmp/Hack.zip" -d "$HOME/.local/share/fonts/NerdFonts"
-    # An `x && y` tail would make this function return non-zero when x is
-    # false, which under `set -e` aborts the whole run.
-    if have fc-cache; then
-        run fc-cache -f
-    fi
-}
-
-step_gogh() {
-    run sudo apt install -y dconf-cli uuid-runtime
-    tmp=$(mktempdir)
-    clone_or_pull https://github.com/Gogh-Co/Gogh.git "$tmp/gogh" --depth=1
-    # Required by Gogh's installers when running under GNOME Terminal
-    export TERMINAL=gnome-terminal
-    run "$tmp/gogh/installs/gruvbox-dark.sh"
-    run "$tmp/gogh/installs/gruvbox.sh"
-}
-
-step_lazygit() {
-    # Installed under ~/.local/bin so the step needs no sudo and works the
-    # same on a workstation and on a server account.
-    need_dir "$HOME/.local/bin"
-    v=$LAZYGIT_VERSION
-    tmp=$(mktempdir)
-    fetch "https://github.com/jesseduffield/lazygit/releases/download/v${v}/lazygit_${v}_Linux_$(arch_slug).tar.gz" \
-        "$tmp/lazygit.tar.gz"
-    run tar -C "$tmp" -xzf "$tmp/lazygit.tar.gz" lazygit
-    run install -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
-}
-
-step_stylua() {
-    # Lua formatter, for `stylua --check nvim/` and conform's format-on-save
-    # (Mason is deliberately not asked for it). Not in apt; the musl build is
-    # static. ~/.local/bin, no sudo.
-    need_dir "$HOME/.local/bin"
-    case "$(arch_slug)" in
-        x86_64) asset=stylua-linux-x86_64-musl ;;
-        arm64) asset=stylua-linux-aarch64-musl ;;
-    esac
-    tmp=$(mktempdir)
-    fetch "https://github.com/JohnnyMorganz/StyLua/releases/download/v${STYLUA_VERSION}/${asset}.zip" \
-        "$tmp/stylua.zip"
-    run unzip -o "$tmp/stylua.zip" stylua -d "$tmp"
-    run install -m 755 "$tmp/stylua" "$HOME/.local/bin/stylua"
-}
-
-step_gdu() {
-    # Disk usage browser (ncdu-like, parallel scan). ~/.local/bin, no sudo.
-    need_dir "$HOME/.local/bin"
-    case "$(arch_slug)" in
-        x86_64) asset=gdu_linux_amd64_static ;;
-        arm64) asset=gdu_linux_arm64 ;;
-    esac
-    tmp=$(mktempdir)
-    fetch "https://github.com/dundee/gdu/releases/download/v${GDU_VERSION}/${asset}.tgz" \
-        "$tmp/gdu.tgz"
-    run tar -C "$tmp" -xzf "$tmp/gdu.tgz" "$asset"
-    run install -m 755 "$tmp/$asset" "$HOME/.local/bin/gdu"
-    link "$DOTFILES/gdu/gdu.yaml" "$HOME/.gdu.yaml"
-}
-
-step_neovim() {
-    # One step for both architectures, chosen from uname -m.
-    # Pinned to NEOVIM_VERSION; see scripts/steps/shared.sh for why.
-    install_neovim_tarball linux
+    die "missing:$missing -- ask the admin, or on a desktop run apt_general"
 }
 
 # Hand SSH logins over to zsh (and from there to tmux, see zsh/zshrc).
 #
-# The usual answer, `chsh -s $(which zsh)`, is unavailable on the servers this
-# targets: chsh asks for the account password through PAM, and these accounts
-# have none (key-only login) and no sudo. So the login shell stays bash, and
-# bash is made to exec zsh instead.
+# The usual answer, `chsh -s $(which zsh)`, is unavailable on the accounts
+# linux-base targets: chsh asks for the account password through PAM, and
+# these accounts have none (key-only login) and no sudo. So the login shell
+# stays bash, and bash is made to exec zsh instead.
 #
 # The hook goes in ~/.profile (or ~/.bash_profile, which bash prefers when it
 # exists), not ~/.bashrc:
@@ -159,16 +83,123 @@ EOF
     # it keeps hijacking non-login interactive bash. It is a hand-edited file,
     # so say so rather than rewrite it.
     if [ -f "$HOME/.bashrc" ] && grep -q 'exec zsh' "$HOME/.bashrc"; then
-        warn "~/.bashrc also execs zsh; remove that block to let non-login bash stay bash"
+        warn "$HOME/.bashrc also execs zsh; remove that block to let non-login bash stay bash"
     fi
 }
 
-# Make zsh the account's real login shell, on machines with sudo (desktops).
+# lazygit, stylua and gdu are static release binaries installed into
+# ~/.local/bin, so they need no sudo and are the same on a desktop and a server.
+step_lazygit() {
+    need_dir "$HOME/.local/bin"
+    v=$LAZYGIT_VERSION
+    tmp=$(mktempdir)
+    fetch "https://github.com/jesseduffield/lazygit/releases/download/v${v}/lazygit_${v}_Linux_$(arch_slug).tar.gz" \
+        "$tmp/lazygit.tar.gz"
+    run tar -C "$tmp" -xzf "$tmp/lazygit.tar.gz" lazygit
+    run install -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
+}
+
+# Lua formatter, for `stylua --check nvim/` and conform's format-on-save
+# (Mason is deliberately not asked for it). The musl build is static.
+step_stylua() {
+    need_dir "$HOME/.local/bin"
+    case "$(arch_slug)" in
+        x86_64) asset=stylua-linux-x86_64-musl ;;
+        arm64) asset=stylua-linux-aarch64-musl ;;
+    esac
+    tmp=$(mktempdir)
+    fetch "https://github.com/JohnnyMorganz/StyLua/releases/download/v${STYLUA_VERSION}/${asset}.zip" \
+        "$tmp/stylua.zip"
+    run unzip -o "$tmp/stylua.zip" stylua -d "$tmp"
+    run install -m 755 "$tmp/stylua" "$HOME/.local/bin/stylua"
+}
+
+# Disk usage browser (ncdu-like, parallel scan).
+step_gdu() {
+    need_dir "$HOME/.local/bin"
+    case "$(arch_slug)" in
+        x86_64) asset=gdu_linux_amd64_static ;;
+        arm64) asset=gdu_linux_arm64 ;;
+    esac
+    tmp=$(mktempdir)
+    fetch "https://github.com/dundee/gdu/releases/download/v${GDU_VERSION}/${asset}.tgz" \
+        "$tmp/gdu.tgz"
+    run tar -C "$tmp" -xzf "$tmp/gdu.tgz" "$asset"
+    run install -m 755 "$tmp/$asset" "$HOME/.local/bin/gdu"
+    link "$DOTFILES/gdu/gdu.yaml" "$HOME/.gdu.yaml"
+}
+
+# Pinned to NEOVIM_VERSION; see scripts/steps/shared.sh for why.
+step_neovim() {
+    install_neovim_tarball linux
+}
+
+step_anaconda() {
+    if [ -d "$HOME/anaconda3" ]; then
+        info "anaconda already installed at ~/anaconda3"
+        return 0
+    fi
+    installer="Anaconda3-${ANACONDA_VERSION}-Linux-$(uname -m).sh"
+    tmp=$(mktempdir)
+    fetch "https://repo.anaconda.com/archive/${installer}" "$tmp/${installer}"
+    run bash "$tmp/${installer}" -b -p "$HOME/anaconda3"
+}
+
+# The everyday terminal tools, into conda base: the one place linux-base can
+# install binaries without sudo. zshrc activates base in every shell, so they
+# are on PATH there and in whatever it starts (nvim's conform, ranger).
+# The linters (shellcheck, shfmt) serve the repo checks and nvim (bashls, conform).
+step_conda_packages() {
+    if [ "$DRY_RUN" = 1 ]; then
+        root=$(conda_root) || root="$HOME/anaconda3"
+    else
+        root=$(conda_root) || die "no conda found (run the anaconda step first)"
+    fi
+    run "$root/bin/conda" install --override-channels -c conda-forge -y \
+        ripgrep fd-find jq tree eza bat xsel nvtop fastfetch glances \
+        shellcheck go-shfmt
+    run "$root/bin/pip" install ranger-fm trash-cli
+}
+
+# --- linux-server ------------------------------------------------------------
+
+# ranger-root wrapper that runs ranger as root in a container on $PWD. Builds
+# the image only when missing, so re-runs do not rebuild it.
+step_ranger_docker() {
+    if ! have docker; then
+        warn "docker not found, skipping"
+        return 0
+    fi
+    image="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
+    docker image inspect "$image" > /dev/null 2>&1 ||
+        run docker build -t "$image" "$DOTFILES/ranger/docker"
+    link "$DOTFILES/ranger/ranger-root" "$HOME/.local/bin/ranger-root"
+}
+
+# --- linux-desktop: system, before linux-base --------------------------------
+
+step_apt_update() {
+    run sudo apt update
+    run sudo apt upgrade -y
+    run sudo apt autoremove -y
+}
+
+# What linux-base needs to exist already (step_prerequisites), plus clipboard
+# and networking. Everyday terminal tools come from conda_packages instead, so
+# a server gets the same set without sudo.
+step_apt_general() {
+    run sudo apt install -y zsh tmux vim git wget curl tar unzip build-essential \
+        xclip htop net-tools nmap
+    # For gogh, whose GNOME Terminal installers drive dconf.
+    run sudo apt install -y dconf-cli uuid-runtime
+}
+
+# Make zsh the account's real login shell.
 #
-# login_shell above only catches interactive *login* shells, and GNOME Terminal
+# login_shell only catches interactive *login* shells, and GNOME Terminal
 # starts non-login ones, so on a desktop terminals would stay bash. With sudo,
 # chsh works; `sudo chsh` asks for the sudo password instead of going through
-# chsh's own PAM prompt. Not for linux-server: no sudo there.
+# chsh's own PAM prompt. Desktop only: linux-base and linux-server have no sudo.
 step_default_shell() {
     if ! have zsh; then
         warn "zsh not found, skipping (run apt_general first)"
@@ -186,32 +217,101 @@ step_default_shell() {
     [ "$DRY_RUN" = 1 ] || info "login shell changed to $zsh_path; log out and back in"
 }
 
-# --- conda ------------------------------------------------------------------
+# --- linux-desktop: display, after linux-base --------------------------------
 
-step_anaconda() {
-    if [ -d "$HOME/anaconda3" ]; then
-        info "anaconda already installed at ~/anaconda3"
-        return 0
-    fi
-    installer="Anaconda3-${ANACONDA_VERSION}-Linux-$(uname -m).sh"
+step_nerd_fonts() {
+    need_dir "$HOME/.local/share/fonts/NerdFonts"
     tmp=$(mktempdir)
-    fetch "https://repo.anaconda.com/archive/${installer}" "$tmp/${installer}"
-    run bash "$tmp/${installer}" -b -p "$HOME/anaconda3"
+    fetch "https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_FONT_VERSION/Hack.zip" \
+        "$tmp/Hack.zip"
+    run unzip -o "$tmp/Hack.zip" -d "$HOME/.local/share/fonts/NerdFonts"
+    # An `x && y` tail would make this function return non-zero when x is
+    # false, which under `set -e` aborts the whole run.
+    if have fc-cache; then
+        run fc-cache -f
+    fi
 }
 
-step_conda_packages() {
-    root=$(conda_root) || die "no conda found (run the anaconda step first)"
-    run "$root/bin/conda" install --override-channels -c conda-forge -y \
-        xsel tree eza bat nvtop fastfetch
-    run "$root/bin/pip" install ranger-fm trash-cli
+# GNOME Terminal colours. dconf-cli and uuid-runtime come from apt_general.
+step_gogh() {
+    tmp=$(mktempdir)
+    clone_or_pull https://github.com/Gogh-Co/Gogh.git "$tmp/gogh" --depth=1
+    # Required by Gogh's installers when running under GNOME Terminal
+    export TERMINAL=gnome-terminal
+    run "$tmp/gogh/installs/gruvbox-dark.sh"
+    run "$tmp/gogh/installs/gruvbox.sh"
 }
-
-# --- desktop ----------------------------------------------------------------
 
 step_desktop_general() {
     run sudo apt install -y vlc chromium-browser \
         gnome-shell-extension-manager chrome-gnome-shell
-    info 'open "Extension Manager" and search for "Tiling Shell"'
+}
+
+# Add or remove one UUID in an org.gnome.shell string list (enabled-extensions,
+# disabled-extensions). gsettings rather than `gnome-extensions enable`: that
+# goes through the running shell, which does not know about an extension
+# installed in this session until the next login.
+# $1 = add|remove, $2 = key, $3 = uuid
+shell_ext_list() {
+    cur=$(gsettings get org.gnome.shell "$2")
+    case "$1" in
+        add)
+            case "$cur" in *"'$3'"*) return 0 ;; esac
+            case "$cur" in
+                "@as []" | "[]") new="['$3']" ;;
+                *) new="${cur%]}, '$3']" ;;
+            esac
+            ;;
+        remove)
+            case "$cur" in *"'$3'"*) ;; *) return 0 ;; esac
+            new=$(printf '%s' "$cur" | sed "s/'${3//./\\.}'//; s/, ,/,/; s/\[, /[/; s/, \]/]/")
+            [ "$new" != "[]" ] || new="@as []"
+            ;;
+    esac
+    run gsettings set org.gnome.shell "$2" "$new"
+}
+
+# Tiling Shell, with the settings in tilingshell/tilingshell-settings.txt.
+#
+# Not pinned: extensions.gnome.org serves a different build per GNOME version,
+# so the build is looked up for the running shell (a read-only query, made
+# under --dry-run too). An installed copy is left alone; update it from
+# Extension Manager. Settings are loaded only while the extension has none, so
+# a re-run does not undo changes made in its preferences window.
+TILING_SHELL_UUID="tilingshell@ferrarodomenico.com"
+
+step_tiling_shell() {
+    if ! have gnome-shell; then
+        warn "gnome-shell not found, skipping"
+        return 0
+    fi
+    uuid=$TILING_SHELL_UUID
+    if [ -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]; then
+        info "$uuid already installed"
+    else
+        shell=$(gnome-shell --version | awk '{print $3}' | cut -d. -f1)
+        path=$(curl -fsS "https://extensions.gnome.org/extension-info/?uuid=$uuid&shell_version=$shell" |
+            sed -n 's/.*"download_url": *"\([^"]*\)".*/\1/p') || path=""
+        [ -n "$path" ] || die "no Tiling Shell build for GNOME $shell on extensions.gnome.org"
+        tmp=$(mktempdir)
+        fetch "https://extensions.gnome.org$path" "$tmp/tilingshell.zip"
+        run gnome-extensions install --force "$tmp/tilingshell.zip"
+    fi
+
+    # Ubuntu's own tiler snaps windows too, and the two fight over the edges.
+    shell_ext_list remove enabled-extensions tiling-assistant@ubuntu.com
+    shell_ext_list add disabled-extensions tiling-assistant@ubuntu.com
+    run gsettings set org.gnome.shell disable-user-extensions false
+    shell_ext_list remove disabled-extensions "$uuid"
+    shell_ext_list add enabled-extensions "$uuid"
+
+    if [ -n "$(dconf dump /org/gnome/shell/extensions/tilingshell/)" ]; then
+        info "Tiling Shell settings already present, leaving them alone"
+    else
+        run dconf load /org/gnome/shell/extensions/tilingshell/ \
+            < "$DOTFILES/tilingshell/tilingshell-settings.txt"
+    fi
+    [ "$DRY_RUN" = 1 ] || info "log out and back in (on X11, Alt+F2 r) to start Tiling Shell"
 }
 
 # fcitx5 with Japanese (mozc) and Chinese (chewing, pinyin), replacing IBus.
@@ -231,40 +331,26 @@ step_input_method() {
     copy_if_absent "$DOTFILES/fcitx5/profile" "$HOME/.config/fcitx5/profile"
 }
 
+# Docker's convenience script. Skipped when docker is present: on a re-run the
+# script stops to warn about the existing install, and apt upgrades it anyway.
 step_docker() {
-    tmp=$(mktempdir)
-    clone_or_pull https://github.com/docker/docker-install.git "$tmp/docker-install" --depth=1
-    run sh "$tmp/docker-install/install.sh"
+    if have docker; then
+        info "docker already installed"
+    else
+        tmp=$(mktempdir)
+        clone_or_pull https://github.com/docker/docker-install.git "$tmp/docker-install" --depth=1
+        run sh "$tmp/docker-install/install.sh"
+    fi
     run sudo docker run --rm hello-world
 }
 
-# ranger-root wrapper that runs ranger as root in a container on $PWD. Builds
-# the image only when missing, so re-runs do not rebuild it.
-step_ranger_docker() {
-    if ! have docker; then
-        warn "docker not found, skipping"
-        return 0
-    fi
-    image="nvidia/cuda:12.8.1-base-ubuntu24.04-sm"
-    docker image inspect "$image" > /dev/null 2>&1 ||
-        run docker build -t "$image" "$DOTFILES/ranger/docker"
-    link "$DOTFILES/ranger/ranger-root" "$HOME/.local/bin/ranger-root"
-}
-
-# Optional: in no profile. It switches to the recommended driver (often a newer
-# -open variant), so only run it by name when you mean to change drivers.
-step_nvidia_driver() {
-    driver=$(ubuntu-drivers devices | awk '/recommended/ {print $3}')
-    [ -n "$driver" ] || die "no recommended NVIDIA driver found"
-    info "installing $driver"
-    run sudo apt install -y "$driver"
-}
-
+# Needs docker (step_docker, earlier in linux-desktop): it restarts the daemon.
+# gpg --yes so that a re-run replaces the keyring instead of stopping to ask.
 step_nvidia_container_toolkit() {
     run sudo apt-get update
     run sudo apt-get install -y --no-install-recommends curl gnupg2
     run bash -c 'curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey |
-        sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg'
+        sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg'
     run bash -c 'curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list |
         sed "s#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g" |
         sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list'
@@ -275,14 +361,14 @@ step_nvidia_container_toolkit() {
     run sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
 }
 
-# --- development ------------------------------------------------------------
+# --- linux-desktop: development ----------------------------------------------
 
+# Runs after linux-base, so conda is there for gdb-dashboard's pygments.
 step_cpp() {
     run sudo apt install -y clang clang-format clang-tidy clangd \
         gcc g++ gdb libstdc++-12-dev llvm lldb
     link "$DOTFILES/gdb/gdbinit" "$HOME/.gdbinit"
     link "$DOTFILES/clang-format/clang-format-ubuntu.yml" "$HOME/.clang-format"
-    # gdb-dashboard needs pygments.
     if root=$(conda_root); then
         run "$root/bin/pip" install -U pygments
     else
@@ -294,33 +380,16 @@ step_java() {
     run sudo apt install -y default-jre default-jdk maven
 }
 
-step_gvm() {
-    run sudo apt install -y bison
-    if [ -d "$HOME/.gvm" ]; then
-        info "gvm already installed at ~/.gvm"
-    else
-        run bash -c \
-            'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | GVM_NO_UPDATE_PROFILE=1 bash'
-    fi
-    if [ "$DRY_RUN" = 1 ]; then
-        info "[dry-run] gvm install $GO_VERSION -B && gvm use $GO_VERSION --default"
-        return 0
-    fi
-    # shellcheck disable=SC1091
-    . "$HOME/.gvm/scripts/gvm"
-    gvm install "$GO_VERSION" -B
-    gvm use "$GO_VERSION" --default
-}
-
+# Not pinned: tfenv tracks its master branch; it pins terraform per project.
 step_tfenv() {
     clone_or_pull https://github.com/tfutils/tfenv.git "$HOME/.tfenv" --depth=1
     need_dir "$HOME/.local/bin"
-    for f in "$HOME"/.tfenv/bin/*; do
-        link "$f" "$HOME/.local/bin/$(basename "$f")"
+    for f in tfenv terraform; do
+        link "$HOME/.tfenv/bin/$f" "$HOME/.local/bin/$f"
     done
 }
 
-# --- desktop applications ---------------------------------------------------
+# --- linux-desktop: applications ---------------------------------------------
 
 # Claude desktop app (Linux beta), from Anthropic's apt repository so updates
 # arrive with apt upgrade: https://code.claude.com/docs/en/desktop-linux
@@ -361,6 +430,17 @@ step_claude_desktop() {
 
 step_spotify() { run sudo snap install spotify; }
 step_screenkey() { run sudo apt install -y screenkey; }
+
+# --- optional: in no profile, run by name ------------------------------------
+
+# Switches to the recommended driver (often a newer -open variant), which can
+# replace a working one, so only run it when you mean to change drivers.
+step_nvidia_driver() {
+    driver=$(ubuntu-drivers devices | awk '/recommended/ {print $3}')
+    [ -n "$driver" ] || die "no recommended NVIDIA driver found"
+    info "installing $driver"
+    run sudo apt install -y "$driver"
+}
 
 step_mechatronics() {
     run sudo apt install -y kicad kicad-packages3d openscad freecad blender libreoffice

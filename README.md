@@ -25,12 +25,20 @@ scratch directory that is removed on exit.
 
 ### Profiles
 
-| Profile | For |
-| --- | --- |
-| `linux-base` | A fresh Ubuntu desktop: packages, shell, fonts, colours, core tools, node, claude plugins |
-| `linux-server` | A server account: shell, tools, conda and claude plugins, no desktop packages |
-| `linux-desktop` | Desktop extras: zsh as login shell (`sudo chsh`), fcitx5 (Japanese, Chinese), docker, NVIDIA container toolkit, anaconda, language toolchains, Claude desktop, apps |
-| `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, claude plugins |
+| Profile | For | sudo |
+| --- | --- | --- |
+| `linux-base` | The terminal environment, all under `$HOME`: zsh + oh-my-zsh, tmux, neovim, fzf, lazygit, gdu, node, bun, anaconda with the everyday CLI tools from conda-forge (ripgrep, fd, jq, eza, bat, shellcheck, shfmt, …), ranger, Claude Code and its plugins | no |
+| `linux-server` | `linux-base` plus `ranger_docker`, for SSH-only accounts on shared machines | no |
+| `linux-desktop` | System packages from apt and zsh as login shell (`sudo chsh`), then `linux-base`, then Nerd Fonts, GNOME Terminal colours, Tiling Shell (replacing Ubuntu's tiling-assistant), fcitx5 (Japanese, Chinese), docker, NVIDIA container toolkit, C++/Java/Go/Terraform toolchains, Claude desktop, apps | yes |
+| `macos` | Homebrew, casks, iTerm2 colours, shell, tools, aerospace, Claude Code and its plugins | yes |
+
+`linux-base` and `linux-server` refuse to run `sudo`: a step that tries fails
+straight away, under `--dry-run` too, instead of hanging at a password prompt.
+They expect `zsh tmux git curl tar unzip` to be installed already; the
+`prerequisites` step checks and names whatever is missing. `linux-desktop`
+asks for the sudo password once at the start. Overlapping profiles run each
+step once, and if a step fails the installer names it and prints the command
+that resumes from there.
 
 The NVIDIA driver is optional and in no profile, because it switches to
 whatever `ubuntu-drivers` recommends. Run it by name when you want that:
@@ -52,14 +60,13 @@ A step is just a `step_<name>` bash function. To add one, drop it in the right
 
 ### Pinned versions
 
-Everything fetched from upstream is pinned to a specific release, so two
-machines set up months apart land on the same tooling. The pins sit at the top
-of the step files:
+Tool releases fetched from upstream are pinned, so two machines set up months
+apart land on the same tooling. The pins sit at the top of the step files:
 
 | Where | Pins |
 | --- | --- |
-| `scripts/steps/shared.sh` | `NEOVIM_VERSION`, `NODE_VERSION`, `NVM_VERSION` |
-| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `LAZYGIT_VERSION`, `GDU_VERSION`, `STYLUA_VERSION`, `ANACONDA_VERSION`, `GO_VERSION`, `DRAWIO_VERSION` |
+| `scripts/steps/shared.sh` | `NEOVIM_VERSION`, `NODE_VERSION`, `NVM_VERSION`, `BUN_VERSION`, `GO_VERSION` |
+| `scripts/steps/linux.sh` | `NERD_FONT_VERSION`, `LAZYGIT_VERSION`, `GDU_VERSION`, `STYLUA_VERSION`, `ANACONDA_VERSION`, `DRAWIO_VERSION` |
 
 Neovim is the one that matters most. `NEOVIM_VERSION` is held at 0.11.x on all
 three platforms because nvim-treesitter's `master` branch breaks on 0.12 — the
@@ -70,7 +77,7 @@ For the same reason nothing else may install an `nvim`: a brew-installed one
 shadows `~/.local/bin` on `PATH` and quietly defeats the pin, so `step_neovim`
 removes it.
 
-Two deliberate exceptions:
+Deliberate exceptions:
 
 - **nvm on macOS** comes from `brew install nvm` and rolls forward, because
   Homebrew has no versioned formula and pinning one would mean maintaining a
@@ -79,6 +86,12 @@ Two deliberate exceptions:
   `NVM_DIR` is `~/.nvm` on both so that `brew upgrade nvm` cannot delete the
   installed node versions along with the keg.
 - **Homebrew casks and formulae on macOS** roll forward; brew cannot pin them.
+- **Git checkouts track their default branch**: oh-my-zsh and its plugins,
+  oh-my-tmux, fzf, gvm, tfenv, Gogh. Re-running a step fast-forwards them.
+- **Self-updating tools are installed once and left alone**: the Claude Code
+  CLI (`claude_code`), and Tiling Shell, whose build depends on the GNOME
+  version and is updated from Extension Manager.
+- **Packages from apt and conda-forge** follow the distribution / channel.
 
 ## Claude Code plugins
 
@@ -90,8 +103,9 @@ same one:
 ./scripts/install.sh claude_plugins
 ```
 
-It adds each plugin's marketplace, then installs the plugin at user scope,
-which also enables it; restart `claude` afterwards. Nothing is linked and
+It needs the `claude` CLI, which the `claude_code` step installs just before it
+in every profile. It adds each plugin's marketplace, then installs the plugin
+at user scope, which also enables it; restart `claude` afterwards. Nothing is linked and
 nothing lands in this repo — plugins live in the Claude config directory. The
 list is `CLAUDE_PLUGINS` at the bottom of `scripts/steps/shared.sh`, one
 `<plugin>@<marketplace> <github repo>` per line; add a line to add a plugin.
@@ -114,6 +128,7 @@ Marketplaces`.
 | `ranger/*` | `~/.config/ranger/` |
 | `ranger/ranger-root` | `~/.local/bin/` *(Linux, `ranger_docker` step; also builds `ranger/docker/Dockerfile`; mounted disks are per-host, see `case "$(hostname -s)"` in the script — currently p-ws-40, p-ws-44)* |
 | `fcitx5/profile` | `~/.config/fcitx5/profile` *(Linux desktop, copied once: fcitx5 rewrites it)* |
+| `tilingshell/tilingshell-settings.txt` | `dconf` `/org/gnome/shell/extensions/tilingshell/` *(Linux desktop, `tiling_shell` step; loaded only while Tiling Shell has no settings)* |
 | `aerospace/aerospace.toml` | `~/.config/aerospace/aerospace.toml` |
 | `clang-format/clang-format-{ubuntu,macos}.yml` | `~/.clang-format` |
 | `gdb/gdbinit` | `~/.gdbinit` |
@@ -159,7 +174,7 @@ for i in 1 2 3; do /usr/bin/time -f %e zsh -i -c exit; done
 ## Reference notes
 
 Some directories are documentation rather than configuration — `kernel/`,
-`networks/`, `pyenv/`, `ssh/`, `vnc/`, `mutter/`, `tilingshell/`, `docker/`,
+`networks/`, `pyenv/`, `ssh/`, `vnc/`, `mutter/`, `docker/`,
 `std/`. They are runbooks kept next to the configuration they describe.
 
 `templates/README.template.md` is a markdown scaffold for new projects.

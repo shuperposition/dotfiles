@@ -9,6 +9,8 @@
 # Repository root. install.sh exports this; default for direct sourcing.
 DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 DRY_RUN="${DRY_RUN:-0}"
+# Set by install.sh for the no-sudo profiles (linux-base, linux-server).
+NO_SUDO="${NO_SUDO:-0}"
 
 # --- output -----------------------------------------------------------------
 
@@ -21,6 +23,9 @@ die() {
 
 # Run a command, or describe it under --dry-run.
 run() {
+    if [ "$NO_SUDO" = 1 ] && [ "$1" = sudo ]; then
+        die "this profile runs without sudo, but a step wants: $*"
+    fi
     if [ "$DRY_RUN" = 1 ]; then
         printf '     [dry-run] %s\n' "$*"
     else
@@ -67,7 +72,13 @@ link() {
     src=$1
     dst=$2
     if [ ! -e "$src" ]; then
-        warn "link source missing, skipping: $src"
+        # Under --dry-run the source is usually something an earlier command
+        # in the same step would have cloned or downloaded.
+        if [ "$DRY_RUN" = 1 ]; then
+            info "[dry-run] ln -sfn $src $dst (once $src exists)"
+        else
+            warn "link source missing, skipping: $src"
+        fi
         return 0
     fi
     need_dir "$(dirname "$dst")"
@@ -126,7 +137,11 @@ cleanup_scratch() {
     fi
     return 0
 }
-trap cleanup_scratch EXIT INT TERM
+# On a signal, exit after cleaning up: a trap that only cleaned up would let the
+# script carry on with the next command. install.sh replaces the EXIT trap
+# with one that also reports a failed step, and still calls cleanup_scratch.
+trap cleanup_scratch EXIT
+trap 'cleanup_scratch; exit 130' INT TERM
 
 mktempdir() { mktemp -d "$SCRATCH_ROOT/step.XXXXXX"; }
 
