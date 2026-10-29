@@ -20,6 +20,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 DRY_RUN=0
 export DOTFILES DRY_RUN
+# On a fresh machine ~/.local/bin did not exist at login, so ~/.profile left it
+# off PATH; steps install into it and later steps (claude_plugins) look there.
+export PATH="$HOME/.local/bin:$PATH"
 
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
