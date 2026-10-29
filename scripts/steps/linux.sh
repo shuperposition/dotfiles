@@ -239,7 +239,7 @@ step_gogh() {
     # Required by Gogh's installers when running under GNOME Terminal
     export TERMINAL=gnome-terminal
     run "$tmp/gogh/installs/gruvbox-dark.sh"
-    run "$tmp/gogh/installs/gruvbox.sh"
+    run "$tmp/gogh/installs/gruvbox-light.sh"
 }
 
 step_desktop_general() {

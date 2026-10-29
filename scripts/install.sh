@@ -18,8 +18,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+# DRY_RUN and NO_SUDO are deliberately not exported: only the sourced step
+# files read them, and third-party installers may read the same names
+# (docker-install treats any non-empty DRY_RUN, even 0, as its own dry run).
 DRY_RUN=0
-export DOTFILES DRY_RUN
+export DOTFILES
 # On a fresh machine ~/.local/bin did not exist at login, so ~/.profile left it
 # off PATH; steps install into it and later steps (claude_plugins) look there.
 export PATH="$HOME/.local/bin:$PATH"
@@ -169,7 +172,6 @@ while [ $# -gt 0 ]; do
             ;;
         -n | --dry-run)
             DRY_RUN=1
-            export DRY_RUN
             ;;
         -p | --profile)
             [ $# -ge 2 ] || die "--profile needs a name"
@@ -202,7 +204,6 @@ case " $PROFILES " in
     *" linux-base "* | *" linux-server "*) NO_SUDO=1 ;;
     *) NO_SUDO=0 ;;
 esac
-export NO_SUDO
 
 # Validate everything up front, so a typo in a long profile fails immediately
 # rather than half way through an install.

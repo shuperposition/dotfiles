@@ -200,14 +200,11 @@ step_gvm() {
         run bash -c \
             'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | GVM_NO_UPDATE_PROFILE=1 bash'
     fi
-    if [ "$DRY_RUN" = 1 ]; then
-        info "[dry-run] gvm install $GO_VERSION -B && gvm use $GO_VERSION --default"
-        return 0
-    fi
-    # shellcheck disable=SC1091
-    . "$HOME/.gvm/scripts/gvm"
-    gvm install "$GO_VERSION" -B
-    gvm use "$GO_VERSION" --default
+    # In a child bash: gvm is not `set -u` safe and rewrites PATH, so sourcing
+    # it here would break the rest of the run.
+    # shellcheck disable=SC2016
+    run bash -c '. "$HOME/.gvm/scripts/gvm" &&
+        gvm install "$1" -B && gvm use "$1" --default' _ "$GO_VERSION"
 }
 
 step_python() {
