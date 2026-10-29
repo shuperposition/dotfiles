@@ -300,8 +300,8 @@ alias gs='git status'
 alias gb='git branch --all'
 # Git fetch remote
 alias gf='git fetch --all --verbose'
-# Git set this repo's identity (replaces oh-my-zsh's gc = git commit --verbose)
-alias gc='git config user.name "shuperposition" && git config user.email "shuperposition@github.com"'
+# Git set this repo's identity
+alias git-config='git config user.name "shuperposition" && git config user.email "shuperposition@github.com"'
 # Git show graph
 alias gg='git log --all --oneline --decorate --graph --color'
 # Git show graph pretty
