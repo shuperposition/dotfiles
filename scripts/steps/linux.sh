@@ -428,6 +428,20 @@ step_claude_desktop() {
     fi
 }
 
+# Google Chrome, alongside chromium (desktop_general). The .deb adds Google's
+# apt repository, so later updates arrive with apt upgrade; skipping when it is
+# already installed avoids re-downloading ~100MB on every run.
+step_chrome() {
+    if command -v google-chrome-stable > /dev/null; then
+        info "google-chrome already installed"
+        return
+    fi
+    deb=google-chrome-stable_current_amd64.deb
+    tmp=$(mktempdir)
+    fetch "https://dl.google.com/linux/direct/${deb}" "$tmp/${deb}"
+    run sudo apt install -y "$tmp/${deb}"
+}
+
 step_spotify() { run sudo snap install spotify; }
 step_screenkey() { run sudo apt install -y screenkey; }
 
