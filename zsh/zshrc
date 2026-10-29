@@ -332,6 +332,14 @@ function gpa() {
     echo "finished pulling!"
 }
 
+# SSH settings
+# Load every private key into the agent once, so non-interactive children
+# (e.g. a claude remote-control session) can reach the hosts in ~/.ssh/config.
+# (N) drops a missing directory instead of failing with "no matches found".
+function ssh-start() {
+    ssh-add $(grep -l 'PRIVATE KEY' ~/.ssh/servers/*(N) ~/.ssh/station/*(N))
+}
+
 # Powerlevel10k settings
 [[ -f ~/dotfiles/zsh/p10k.zsh ]] && source ~/dotfiles/zsh/p10k.zsh
 
