@@ -66,7 +66,7 @@ profile_steps() {
             # Run it by name when that is actually wanted.
             echo "apt_update apt_general default_shell
                   $(profile_steps linux-base)
-                  nerd_fonts gogh desktop_general tiling_shell input_method docker nvidia_container_toolkit
+                  nerd_fonts gogh desktop_general tiling_shell wallpaper_slideshow input_method docker nvidia_container_toolkit
                   cpp java gvm tfenv claude_desktop chrome spotify screenkey"
             ;;
         macos)

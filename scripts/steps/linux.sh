@@ -271,13 +271,34 @@ shell_ext_list() {
     run gsettings set org.gnome.shell "$2" "$new"
 }
 
-# Tiling Shell, with the settings in tilingshell/tilingshell-settings.txt.
+# Install a GNOME Shell extension from extensions.gnome.org and enable it.
 #
 # Not pinned: extensions.gnome.org serves a different build per GNOME version,
 # so the build is looked up for the running shell (a read-only query, made
 # under --dry-run too). An installed copy is left alone; update it from
-# Extension Manager. Settings are loaded only while the extension has none, so
-# a re-run does not undo changes made in its preferences window.
+# Extension Manager.
+# Usage: install_gnome_extension <uuid>
+install_gnome_extension() {
+    uuid=$1
+    if [ -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]; then
+        info "$uuid already installed"
+    else
+        shell=$(gnome-shell --version | awk '{print $3}' | cut -d. -f1)
+        path=$(curl -fsS "https://extensions.gnome.org/extension-info/?uuid=$uuid&shell_version=$shell" |
+            sed -n 's/.*"download_url": *"\([^"]*\)".*/\1/p') || path=""
+        [ -n "$path" ] || die "no $uuid build for GNOME $shell on extensions.gnome.org"
+        tmp=$(mktempdir)
+        fetch "https://extensions.gnome.org$path" "$tmp/$uuid.zip"
+        run gnome-extensions install --force "$tmp/$uuid.zip"
+    fi
+    run gsettings set org.gnome.shell disable-user-extensions false
+    shell_ext_list remove disabled-extensions "$uuid"
+    shell_ext_list add enabled-extensions "$uuid"
+}
+
+# Tiling Shell, with the settings in tilingshell/tilingshell-settings.txt.
+# Settings are loaded only while the extension has none, so a re-run does not
+# undo changes made in its preferences window.
 TILING_SHELL_UUID="tilingshell@ferrarodomenico.com"
 
 step_tiling_shell() {
@@ -286,24 +307,11 @@ step_tiling_shell() {
         return 0
     fi
     uuid=$TILING_SHELL_UUID
-    if [ -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]; then
-        info "$uuid already installed"
-    else
-        shell=$(gnome-shell --version | awk '{print $3}' | cut -d. -f1)
-        path=$(curl -fsS "https://extensions.gnome.org/extension-info/?uuid=$uuid&shell_version=$shell" |
-            sed -n 's/.*"download_url": *"\([^"]*\)".*/\1/p') || path=""
-        [ -n "$path" ] || die "no Tiling Shell build for GNOME $shell on extensions.gnome.org"
-        tmp=$(mktempdir)
-        fetch "https://extensions.gnome.org$path" "$tmp/tilingshell.zip"
-        run gnome-extensions install --force "$tmp/tilingshell.zip"
-    fi
 
     # Ubuntu's own tiler snaps windows too, and the two fight over the edges.
     shell_ext_list remove enabled-extensions tiling-assistant@ubuntu.com
     shell_ext_list add disabled-extensions tiling-assistant@ubuntu.com
-    run gsettings set org.gnome.shell disable-user-extensions false
-    shell_ext_list remove disabled-extensions "$uuid"
-    shell_ext_list add enabled-extensions "$uuid"
+    install_gnome_extension "$uuid"
 
     if [ -n "$(dconf dump /org/gnome/shell/extensions/tilingshell/)" ]; then
         info "Tiling Shell settings already present, leaving them alone"
@@ -312,6 +320,17 @@ step_tiling_shell() {
             < "$DOTFILES/tilingshell/tilingshell-settings.txt"
     fi
     [ "$DRY_RUN" = 1 ] || info "log out and back in (on X11, Alt+F2 r) to start Tiling Shell"
+}
+
+# Wallpaper Slideshow: https://extensions.gnome.org/extension/6281/wallpaper-slideshow/
+# Pick its image folder and interval in the extension's preferences.
+step_wallpaper_slideshow() {
+    if ! have gnome-shell; then
+        warn "gnome-shell not found, skipping"
+        return 0
+    fi
+    install_gnome_extension azwallpaper@azwallpaper.gitlab.com
+    [ "$DRY_RUN" = 1 ] || info "log out and back in (on X11, Alt+F2 r) to start Wallpaper Slideshow"
 }
 
 # fcitx5 with Japanese (mozc) and Chinese (chewing, pinyin), replacing IBus.
