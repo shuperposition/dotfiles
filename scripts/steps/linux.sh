@@ -348,6 +348,10 @@ step_input_method() {
     fi
     need_dir "$HOME/.config/fcitx5"
     copy_if_absent "$DOTFILES/fcitx5/profile" "$HOME/.config/fcitx5/profile"
+    # Ubuntu's fcitx5 ships no autostart entry and GNOME starts IBus, not
+    # im-config's choice, so without this fcitx5 never runs after login.
+    link /usr/share/applications/org.fcitx.Fcitx5.desktop \
+        "$HOME/.config/autostart/org.fcitx.Fcitx5.desktop"
 }
 
 # Docker's convenience script. Skipped when docker is present: on a re-run the
