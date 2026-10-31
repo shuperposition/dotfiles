@@ -1,9 +1,17 @@
 # Tmux settings
-# Attach to an existing session or start new session otherwise
+# Attach to (or create) a named session: terminals share "0", the Claude
+# Desktop pane gets its own "claude" so the two never mirror each other.
+# Sessions are named because a bare `attach` picks the most recent one.
 # Guarded on an interactive shell with tmux available, so that a missing or
 # broken tmux cannot lock us out of a login shell (~/.profile execs zsh).
-if [[ -o interactive ]] && [[ -z $TMUX ]] && command -v tmux > /dev/null 2>&1; then
-    tmux -2 attach || tmux -2 new-session
+# Claude Code's own shells skip tmux entirely.
+if [[ -o interactive ]] && [[ -z $TMUX ]] && [[ -z $CLAUDECODE ]] &&
+    command -v tmux > /dev/null 2>&1; then
+    if [[ $TERM_PROGRAM == claude-desktop ]]; then
+        tmux -2 new-session -A -s claude
+    else
+        tmux -2 new-session -A -s 0
+    fi
 fi
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
