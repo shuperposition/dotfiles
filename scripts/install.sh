@@ -67,7 +67,7 @@ profile_steps() {
             echo "apt_update apt_general default_shell
                   $(profile_steps linux-base)
                   nerd_fonts gogh desktop_general tiling_shell wallpaper_slideshow input_method docker nvidia_container_toolkit
-                  cpp java gvm tfenv claude_desktop chrome spotify screenkey"
+                  cpp java gvm tfenv claude_desktop chrome zoom spotify slack screenkey"
             ;;
         macos)
             echo "essentials terminal_utilities desktop_applications

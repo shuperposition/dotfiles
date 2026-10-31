@@ -33,7 +33,7 @@ step_desktop_applications() {
     local cask
     for cask in google-chrome firefox spotify vlc \
         iterm2 docker visual-studio-code notion drawio \
-        steam battle-net claude; do
+        steam battle-net claude slack zoom; do
         run brew install --cask "$cask" || warn "cask $cask not installed (already in /Applications?)"
     done
 }

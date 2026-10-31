@@ -461,7 +461,21 @@ step_chrome() {
     run sudo apt install -y "$tmp/${deb}"
 }
 
+# Zoom from its official .deb (the snap is community-packaged). The .deb adds
+# no apt repository, so update from Zoom's own prompt or by deleting it and
+# re-running; skipping when installed avoids re-downloading ~300MB.
+step_zoom() {
+    if command -v zoom > /dev/null; then
+        info "zoom already installed"
+        return
+    fi
+    tmp=$(mktempdir)
+    fetch https://zoom.us/client/latest/zoom_amd64.deb "$tmp/zoom_amd64.deb"
+    run sudo apt install -y "$tmp/zoom_amd64.deb"
+}
+
 step_spotify() { run sudo snap install spotify; }
+step_slack() { run sudo snap install slack; }
 step_screenkey() { run sudo apt install -y screenkey; }
 
 # --- optional: in no profile, run by name ------------------------------------
